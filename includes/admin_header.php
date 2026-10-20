@@ -6,9 +6,8 @@
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/scheduler.php';
 requireAuth();
-registerSchedulerCheck(); // publicações agendadas (reserva sem cron)
+registerSchedulerCheck(); 
 
-// Garante dados atualizados do usuário atual
 $pdo = getPDO();
 $currentUser = getCurrentUser();
 if ($pdo && !empty($currentUser['id'])) {
@@ -41,8 +40,6 @@ $activePage = $activePage ?? 'dashboard';
             background-color: #cbd5e1;
             border-radius: 9999px;
         }
-
-        /* ===== Modo Escuro Minimalista e Sofisticado (Slate Theme) ===== */
         html.dark {
             color-scheme: dark;
         }
@@ -50,7 +47,6 @@ $activePage = $activePage ?? 'dashboard';
             background-color: #0f172a !important; 
             color: #94a3b8 !important; 
         }
-        /* Superfícies principais (Cards, Sidebar, Topo) */
         html.dark aside,
         html.dark .hd-bar,
         html.dark .bg-white,
@@ -61,7 +57,6 @@ $activePage = $activePage ?? 'dashboard';
             border-color: #334155 !important; 
             color: #e2e8f0 !important; 
         }
-        /* Bordas sutis */
         html.dark .border-slate-200, 
         html.dark .border-slate-100,
         html.dark .border-slate-200\/80,
@@ -72,7 +67,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark #adminSidebar { 
             border-color: #334155 !important; 
         }
-        /* Itens de lista no Dashboard e Histórico */
         html.dark .dash-section-item,
         html.dark .divide-y > div {
             border-color: #334155 !important;
@@ -82,7 +76,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark .divide-y > div:hover {
             background-color: #243247 !important;
         }
-        /* Botões de Ação Excluir em modo escuro */
         html.dark button[title="Excluir seção"],
         html.dark button[title="Mover para lixeira"],
         html.dark .border-red-200,
@@ -99,7 +92,6 @@ $activePage = $activePage ?? 'dashboard';
             border-color: #f87171 !important;
             color: #fca5a5 !important;
         }
-        /* Botão Enviar Arquivos e Botões Primários */
         html.dark label[for="fileUploadInput"],
         html.dark .bg-indigo-600 {
             background-color: #4f46e5 !important;
@@ -111,7 +103,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark .bg-indigo-600:hover {
             background-color: #4338ca !important;
         }
-        /* Simulação de Navegador e Preview do Site */
         html.dark .bg-slate-200\/50,
         html.dark #previewFrameContainer {
             background-color: #0b0f19 !important;
@@ -123,7 +114,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark #previewIframe {
             background-color: #0b0f19 !important;
         }
-        /* Tipografia */
         html.dark .text-slate-900, 
         html.dark .text-slate-800, 
         html.dark .notifications-title,
@@ -135,7 +125,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark .notifications-empty-title { 
             color: #f8fafc !important; 
         }
-        /* Links e Abas Ativas (Menu Lateral e Configurações) */
         html.dark .bg-indigo-50,
         html.dark .hover\:bg-slate-50:hover,
         html.dark a.bg-indigo-50 {
@@ -164,7 +153,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark .notification-meta { 
             color: #94a3b8 !important; 
         }
-        /* Fundos secundários e inputs */
         html.dark .bg-slate-50, 
         html.dark .bg-slate-100,
         html.dark .notification-filter-group,
@@ -186,7 +174,6 @@ $activePage = $activePage ?? 'dashboard';
             border-color: #6366f1 !important; 
             background-color: #0f172a !important; 
         }
-        /* Componentes de Notificações na página */
         html.dark .notification-item {
             border-color: #334155 !important;
             background: #1e293b !important;
@@ -230,7 +217,6 @@ $activePage = $activePage ?? 'dashboard';
         html.dark .notification-section-link {
             color: #818cf8 !important;
         }
-        /* Topo e Dropdowns */
         html.dark .hd-bar {
             background: #1e293b !important;
             border-color: #334155 !important;
@@ -333,8 +319,6 @@ $activePage = $activePage ?? 'dashboard';
             border-color: #334155 !important;
             color: #64748b !important;
         }
-
-        /* ===== Topo: notificações e menu do usuário (independente do build do Tailwind) ===== */
         .hd-actions{display:flex;align-items:center;gap:8px}
         .hd-pop-wrap{position:relative}
         .hd-icon-btn{position:relative;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;border-radius:12px;color:#64748b;cursor:pointer;transition:background .15s,color .15s}
@@ -398,7 +382,6 @@ $activePage = $activePage ?? 'dashboard';
         .hd-menu a.danger:hover{background:#fff1f2;color:#9f1239}
         .hd-menu a.danger:hover svg{color:#e11d48}
 
-        /* ===== Estrutura responsiva: gaveta lateral, barra superior e busca ===== */
         .adm-main{padding:16px}
         @media (min-width:640px){.adm-main{padding:24px}}
         @media (min-width:1024px){.adm-main{padding:32px}}
@@ -450,7 +433,6 @@ $activePage = $activePage ?? 'dashboard';
             .hd-results{position:fixed;left:12px;right:12px;top:68px;width:auto;max-height:calc(100vh - 84px)}
         }
 
-        /* Gaveta lateral (abaixo de 1024px) */
         .hd-icon-btn.sb-close{display:none;margin-left:auto}
         .sb-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:65;opacity:0;transition:opacity .2s}
         .sb-overlay[hidden]{display:none}
@@ -470,11 +452,9 @@ $activePage = $activePage ?? 'dashboard';
 <body class="h-full flex flex-col font-sans antialiased text-slate-800 bg-slate-100">
 
 <div class="flex h-screen overflow-hidden">
-    <!-- Sidebar -->
     <div id="sbOverlay" class="sb-overlay" hidden></div>
     <aside id="adminSidebar" class="sb w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 shadow-sm z-20" aria-label="Menu principal">
         <div>
-            <!-- Logo / Brand -->
             <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-100">
                 <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-100">
                     <i data-lucide="globe" class="w-5 h-5"></i>
@@ -482,8 +462,6 @@ $activePage = $activePage ?? 'dashboard';
                 <span class="text-xl font-bold tracking-tight text-slate-900">Tunísia CMS</span>
                 <button type="button" id="sbClose" class="hd-icon-btn sb-close" aria-label="Fechar menu"><i data-lucide="x"></i></button>
             </div>
-
-            <!-- Navigation Links -->
             <nav class="p-4 space-y-1.5 text-sm font-medium">
                 <a href="<?= ADMIN_URL ?>/dashboard.php" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition <?= $activePage === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' ?>">
                     <i data-lucide="layout-grid" class="w-5 h-5 <?= $activePage === 'dashboard' ? 'text-indigo-600' : 'text-slate-400' ?>"></i>
@@ -538,18 +516,13 @@ $activePage = $activePage ?? 'dashboard';
 
     </aside>
 
-    <!-- Main Content Wrapper -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
-        <!-- Top Header Bar -->
         <header class="hd-bar">
             <button type="button" id="sbOpen" class="hd-icon-btn hd-burger" aria-label="Abrir menu" aria-controls="adminSidebar" aria-expanded="false"><i data-lucide="menu"></i></button>
-
-            <!-- Breadcrumbs (só em telas largas) -->
             <div class="hd-crumbs">
                 <span>Painel</span><span>&gt;</span><strong><?= e($pageTitle ?? 'Dashboard') ?></strong>
             </div>
 
-            <!-- Busca global -->
             <div class="hd-search" id="globalSearch" role="search">
                 <i data-lucide="search" class="hd-search-ic"></i>
                 <input id="gsInput" type="search" name="q" autocomplete="off" spellcheck="false" placeholder="Buscar seções, mídia, ajuda…" aria-label="Buscar no painel" role="combobox" aria-expanded="false" aria-controls="gsPanel" aria-autocomplete="list">
@@ -558,20 +531,16 @@ $activePage = $activePage ?? 'dashboard';
                 <div id="gsPanel" class="hd-pop hd-results" role="listbox" aria-label="Resultados da busca" hidden></div>
             </div>
 
-            <!-- Notificações e menu do usuário -->
             <div class="hd-actions">
                 <?php
                     $avatarUrl = !empty($currentUser['avatar']) ? SITE_URL . '/' . ltrim($currentUser['avatar'], '/') : '';
                     $userInitial = strtoupper(mb_substr($currentUser['name'] ?? 'A', 0, 1));
                     $roleLabel = ($currentUser['role'] ?? '') === 'admin' ? 'Administrador' : 'Editor';
                 ?>
-                <!-- Alternador de Modo Escuro -->
                 <button type="button" id="themeToggleBtn" class="hd-icon-btn" title="Alternar tema claro/escuro" aria-label="Alternar tema">
                     <i data-lucide="moon" id="themeMoonIcon"></i>
                     <i data-lucide="sun" id="themeSunIcon" class="hidden"></i>
                 </button>
-
-                <!-- Notificações -->
                 <div class="hd-pop-wrap" id="notifDropdownContainer">
                     <button type="button" id="notifDropdownBtn" class="hd-icon-btn" title="Notificações" aria-label="Notificações" aria-haspopup="true" aria-expanded="false" aria-controls="notifDropdownMenu">
                         <i data-lucide="bell"></i>
@@ -590,8 +559,6 @@ $activePage = $activePage ?? 'dashboard';
                         </div>
                     </div>
                 </div>
-
-                <!-- Menu do usuário -->
                 <div class="hd-pop-wrap" id="profileDropdownContainer">
                     <button type="button" id="profileDropdownBtn" class="hd-profile-btn" aria-haspopup="true" aria-expanded="false" aria-controls="profileDropdownMenu" aria-label="Menu da conta de <?= e($currentUser['name'] ?? 'Admin') ?>">
                         <span class="hd-avatar"><?php if ($avatarUrl): ?><img src="<?= e($avatarUrl) ?>" alt=""><?php else: ?><?= e($userInitial) ?><?php endif; ?></span>
@@ -624,7 +591,6 @@ $activePage = $activePage ?? 'dashboard';
             </div>
         </header>
 
-        <!-- Main Body View Area -->
         <main class="adm-main flex-1 overflow-y-auto custom-scrollbar">
 
 <script>
@@ -664,7 +630,6 @@ $activePage = $activePage ?? 'dashboard';
         Object.keys(pops).forEach(k => { const p = pops[k]; if (p.menu && !p.menu.hidden) { setOpen(k, false); p.btn.focus(); } });
     });
 
-    // ----- contadores (sino + menu lateral) -----
     function setUnread(n) {
         n = parseInt(n) || 0;
         const badge = document.getElementById('notifBadge');
@@ -673,7 +638,6 @@ $activePage = $activePage ?? 'dashboard';
         if (side) { side.style.display = n > 0 ? '' : 'none'; side.textContent = String(n); }
     }
 
-    // ----- lista -----
     function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
     function state(msg, err, icon) {
         const d = el('div', 'hd-n-state' + (err ? ' err' : ''));
@@ -734,13 +698,11 @@ $activePage = $activePage ?? 'dashboard';
     const markBtn = document.getElementById('notifMarkAll');
     if (markBtn) markBtn.addEventListener('click', markAllNotificationsRead);
 
-    // mantem compatibilidade com chamadas antigas em outras páginas
     window.toggleNotifDropdown = () => pops.notif.btn.click();
     window.toggleProfileDropdown = () => pops.profile.btn.click();
     window.markAllNotificationsRead = markAllNotificationsRead;
     window.escapeHtml = function (str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; };
 
-    // Polling discreto a cada 30 segundos
     let lastUnreadCount = <?= (int)$unreadNotifCount ?>;
     setInterval(async () => {
         try {
@@ -749,7 +711,6 @@ $activePage = $activePage ?? 'dashboard';
             if (data && data.success) {
                 setUnread(data.unread_count);
                 if (data.unread_count > lastUnreadCount) {
-                    // Atualiza dropdown se estiver aberto
                     if (!pops.notif.menu.hidden) loadNotifDropdown();
                 }
                 lastUnreadCount = data.unread_count;
@@ -757,7 +718,6 @@ $activePage = $activePage ?? 'dashboard';
         } catch (e) {}
     }, 30000);
 
-    // Controle do Tema Claro / Escuro
     const themeBtn = document.getElementById('themeToggleBtn');
     const moonIcon = document.getElementById('themeMoonIcon');
     const sunIcon = document.getElementById('themeSunIcon');
@@ -782,7 +742,6 @@ $activePage = $activePage ?? 'dashboard';
 </script>
 
 <script>
-/* ===== Gaveta do menu lateral (telas < 1024px) ===== */
 (function () {
     const sb = document.getElementById('adminSidebar');
     const overlay = document.getElementById('sbOverlay');
@@ -814,7 +773,6 @@ $activePage = $activePage ?? 'dashboard';
     window.addEventListener('resize', () => { if (window.innerWidth >= 1024) close(false); });
 })();
 
-/* ===== Busca global ===== */
 (function () {
     const API = '<?= ADMIN_URL ?>/api/search.php';
     const box = document.getElementById('globalSearch');
@@ -825,7 +783,6 @@ $activePage = $activePage ?? 'dashboard';
 
     let items = [], active = -1, timer = null, ctrl = null, lastQuery = null, quickCache = null;
 
-    // ---- utilidades ----
     const fold = ch => ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().charAt(0) || ch.toLowerCase();
     function foldStr(str) { let o = ''; for (const ch of str) o += fold(ch); return o; }
     function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
@@ -844,7 +801,6 @@ $activePage = $activePage ?? 'dashboard';
         return frag;
     }
 
-    // ---- abrir / fechar painel ----
     function openPanel() { panel.hidden = false; input.setAttribute('aria-expanded', 'true'); }
     function closePanel() { panel.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; input.removeAttribute('aria-activedescendant'); }
     function syncUi() {
@@ -853,7 +809,6 @@ $activePage = $activePage ?? 'dashboard';
         clearBtn.hidden = !has;
     }
 
-    // ---- render ----
     function render(data, query) {
         panel.replaceChildren(); items = []; active = -1;
         const terms = foldStr(query).split(/\s+/).filter(Boolean);
@@ -896,7 +851,6 @@ $activePage = $activePage ?? 'dashboard';
         if (scroll !== false) items[i].scrollIntoView({ block: 'nearest' });
     }
 
-    // ---- busca ----
     async function run(query) {
         if (query === lastQuery && !panel.hidden) return;
         lastQuery = query;
@@ -933,7 +887,6 @@ $activePage = $activePage ?? 'dashboard';
     document.addEventListener('click', e => { if (!box.contains(e.target)) closePanel(); });
     document.addEventListener('hd:close-search', closePanel);
 
-    // atalhos: "/" ou Ctrl/Cmd+K
     document.addEventListener('keydown', e => {
         const tag = (e.target.tagName || '').toLowerCase();
         const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
@@ -942,7 +895,6 @@ $activePage = $activePage ?? 'dashboard';
         }
     });
 
-    // Se a página tiver ?q= (ex.: biblioteca de mídia), preenche a busca com o termo
     const urlQ = new URLSearchParams(location.search).get('q');
     if (urlQ && /media\.php$/.test(location.pathname)) { input.value = urlQ; syncUi(); }
 })();

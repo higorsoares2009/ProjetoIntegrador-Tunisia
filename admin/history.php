@@ -13,12 +13,9 @@ $pdo = getPDO();
 $successMsg = '';
 $errorMsg = '';
 
-// Aplica a política de retenção configurada antes de listar
 if (function_exists('applyHistoryRetention')) {
     applyHistoryRetention();
 }
-
-// Ação de Restauração (com confirmação por checkbox)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_version_id'])) {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verifyCsrfToken($csrf)) {
@@ -38,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_version_id'])
                 if ($ver) {
                     $data = json_decode($ver['data_payload'], true);
                     if ($data) {
-                        // Restaura todos os campos existentes no snapshot. Versões antigas continuam compatíveis.
                         $pdo->beginTransaction();
                         $stmtUpdate = $pdo->prepare("UPDATE sections SET title = ?, subtitle = ?, badge = ?, description = ?, primary_btn_text = ?, primary_btn_link = ?, secondary_btn_text = ?, secondary_btn_link = ?, image_path = ?, video_path = ?, status = 'published', is_visible = ?, updated_at = NOW() WHERE id = ?");
                         $stmtUpdate->execute([
@@ -56,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_version_id'])
                             (int)$ver['section_id']
                         ]);
 
-                        // Só substitui os itens quando a versão realmente contém esse snapshot.
                         if (isset($data['section_items']) && is_array($data['section_items'])) {
                             $pdo->prepare('DELETE FROM section_items WHERE section_id = ?')->execute([(int)$ver['section_id']]);
                             $insertItem = $pdo->prepare('INSERT INTO section_items (section_id,item_type,title,subtitle,description,icon,image_path,badge,link_url,meta_data,display_order,status,is_visible) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
@@ -80,13 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_version_id'])
                             }
                         }
 
-                        // Restaura também a aparência (fontes, cores, layout) gravada naquela versão
                         if (array_key_exists('style', $data)) {
                             $pdo->prepare('UPDATE sections SET style_data = ? WHERE id = ?')
                                 ->execute([json_encode(sanitizeSectionStyle($data['style']), JSON_UNESCAPED_UNICODE), (int)$ver['section_id']]);
                         }
 
-                        // Registra nova versão preservando o histórico
                         $user = getCurrentUser();
                         $userName =$user['name'] ?? 'Admin';
                         $userId = (int)($user['id'] ?? 1);
@@ -125,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_version_id'])
     }
 }
 
-// Lista de versões reais do banco
 $versionsList = [];
 if ($pdo) {
     try {
@@ -145,7 +137,6 @@ if ($pdo) {
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
 
-<!-- Header da Página -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Histórico de versões</h1>
@@ -174,7 +165,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 <?php endif; ?>
 
-<!-- Lista de Histórico Real -->
 <?php if (empty($versionsList)): ?>
     <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center">
         <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
@@ -199,7 +189,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 ?>
                 <div class="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/70 transition">
                     <div class="flex items-start gap-4">
-                        <!-- Avatar do autor -->
                         <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 shrink-0 overflow-hidden shadow-sm">
                             <?php if (!empty($v['user_avatar'])): ?>
                                 <img src="<?= SITE_URL ?>/<?= ltrim($v['user_avatar'], '/') ?>" alt="Avatar" class="w-full h-full object-cover">
@@ -242,9 +231,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 <?php endif; ?>
 
-<!-- ============================================== -->
-<!-- MODAL DE RESTAURAÇÃO                           -->
-<!-- ============================================== -->
 <div id="restoreModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transition-all">
         <div class="text-center mb-6">
@@ -291,9 +277,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 </div>
 
-<!-- ============================================== -->
-<!-- MODAL DE COMPARAÇÃO DE VERSÕES                 -->
-<!-- ============================================== -->
 <div id="compareModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-4xl w-full p-6 lg:p-8 shadow-2xl border border-slate-100 transition-all flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
@@ -306,7 +289,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             </button>
         </div>
 
-        <!-- Seletores de Versão Real -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Versão Anterior</label>
@@ -331,9 +313,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
             </div>
         </div>
 
-        <!-- Visualização Lado a Lado com Diferenças Destacadas -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-y-auto custom-scrollbar p-1">
-            <!-- Coluna Esquerda: Versão Anterior -->
             <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-200/80 mb-4">
                     <span class="text-xs font-bold text-slate-700" id="leftCardTitle">Versão Anterior</span>
@@ -351,7 +331,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 </div>
             </div>
 
-            <!-- Coluna Direita: Versão Mais Recente -->
             <div class="bg-indigo-50/40 rounded-2xl p-5 border border-indigo-100">
                 <div class="flex items-center justify-between pb-3 border-b border-indigo-100 mb-4">
                     <span class="text-xs font-bold text-indigo-900" id="rightCardTitle">Versão Mais Recente</span>
@@ -370,7 +349,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             </div>
         </div>
 
-        <!-- Rodapé da Comparação -->
         <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
             <span class="text-xs text-slate-400">
                 Texto com <span class="bg-red-100 text-red-700 px-1 rounded">remoções</span> e <span class="bg-emerald-100 text-emerald-700 px-1 rounded">adições</span> destacadas.

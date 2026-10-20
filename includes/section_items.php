@@ -76,7 +76,6 @@ function ensureSectionItems(PDO $pdo, int $sectionId, string $identifier): array
 
     $defaults = defaultSectionItems($identifier);
     if ($defaults) {
-        // Migra os textos que antes estavam fixos no HTML apenas uma vez.
         $existingKeys = [];
         foreach ($items as $existing) $existingKeys[$existing['item_type'] . '|' . $existing['title']] = true;
         $missing = array_values(array_filter($defaults, fn($row) => !isset($existingKeys[$row[0] . '|' . $row[1]])));

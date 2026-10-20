@@ -1,8 +1,6 @@
 <?php
 /**
  * Verificação de segurança pós-instalação (somente terminal):
- *   php scripts/check-security.php
- * Aponta contas e configurações que não devem existir em produção.
  */
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
@@ -17,7 +15,6 @@ if (!$pdo) {
     exit(2);
 }
 
-// 1) Conta administrativa de demonstração das versões antigas do database.sql
 $legacy = $pdo->prepare("SELECT id, role, status FROM users WHERE email = ?");
 foreach (['admin@projetotunisia.local', 'adm@adm.com'] as $legacyEmail) {
 $legacy->execute([$legacyEmail]);
@@ -29,7 +26,6 @@ if ($row = $legacy->fetch()) {
 }
 }
 
-// 2) Ambiente
 if (APP_ENV !== 'production') {
     $problems++;
     echo "[ALERTA] APP_ENV=" . APP_ENV . ". Em produção use APP_ENV=production e APP_DEBUG=false.\n";
@@ -49,7 +45,6 @@ if (trim((string)envValue('PUBLIC_URL', '')) === '') {
     echo "[AVISO]  PUBLIC_URL vazio: canonical/sitemap serão deduzidos da requisição. Defina a URL final em produção.\n";
 }
 
-// 3) Pastas de escrita
 foreach ([UPLOADS_DIR, CACHE_DIR] as $dir) {
     if (!is_dir($dir) || !is_writable($dir)) {
         $problems++;

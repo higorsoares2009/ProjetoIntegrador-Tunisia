@@ -12,7 +12,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
 $pdo = getPDO();
 
-// 1. Métricas Reais do Banco
 $totalSections = 0;
 $publishedCount = 0;
 $draftCount = 0;
@@ -26,16 +25,13 @@ $recentActivity = [];
 
 if ($pdo) {
     try {
-        // Contagens de seções
         $totalSections = (int)$pdo->query("SELECT COUNT(*) FROM sections")->fetchColumn();
         $publishedCount = (int)$pdo->query("SELECT COUNT(*) FROM sections WHERE status = 'published'")->fetchColumn();
         $draftCount = (int)$pdo->query("SELECT COUNT(*) FROM sections WHERE status = 'draft'")->fetchColumn();
 
-        // Visualizações reais dos últimos 30 dias
         $stmtViews = $pdo->query("SELECT COUNT(*) FROM page_views WHERE created_at >= (NOW() - INTERVAL 30 DAY)");
         $totalViews30d = (int)($stmtViews ? $stmtViews->fetchColumn() : 0);
 
-        // Visualizações do período de 30 a 60 dias atrás (para comparação)
         $stmtPrev = $pdo->query("SELECT COUNT(*) FROM page_views WHERE created_at >= (NOW() - INTERVAL 60 DAY) AND created_at < (NOW() - INTERVAL 30 DAY)");
         $totalViewsPrev30d = (int)($stmtPrev ? $stmtPrev->fetchColumn() : 0);
 
@@ -47,11 +43,8 @@ if ($pdo) {
             $viewsTrendUp = true;
         }
 
-        // Seções ordenadas pelo display_order
         $stmt = $pdo->query("SELECT * FROM sections ORDER BY display_order ASC");
         $sectionsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Últimas atividades reais de auditoria com dados do usuário
         $stmtLogs = $pdo->query("
             SELECT a.*, u.name as user_name, u.avatar as user_avatar 
             FROM audit_logs a 
@@ -66,7 +59,6 @@ if ($pdo) {
 }
 ?>
 
-<!-- Boas-vindas e Botões de Ação Topo -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Bom dia, <?= e($currentUser['name'] ?? 'Admin') ?></h1>
@@ -85,9 +77,7 @@ if ($pdo) {
     </div>
 </div>
 
-<!-- Grid de Cards de Estatísticas Reais -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-    <!-- Visualizações Reais dos últimos 30 dias -->
     <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Visualizações</span>
@@ -104,7 +94,6 @@ if ($pdo) {
         </div>
     </div>
 
-    <!-- Total de Seções -->
     <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de seções</span>
@@ -119,7 +108,6 @@ if ($pdo) {
         </div>
     </div>
 
-    <!-- Conteúdos Publicados -->
     <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conteúdos Publicados</span>
@@ -134,7 +122,6 @@ if ($pdo) {
         </div>
     </div>
 
-    <!-- Rascunhos -->
     <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow transition">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rascunhos</span>
@@ -150,10 +137,8 @@ if ($pdo) {
     </div>
 </div>
 
-<!-- Layout Principal de 2 Colunas -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
     
-    <!-- Coluna Esquerda: Seções do Site com Suporte a Reordenação Direta -->
     <div class="lg:col-span-2 min-w-0 bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-sm">
         <div class="flex items-center justify-between pb-5 border-b border-slate-100 mb-4">
             <div>
@@ -213,9 +198,7 @@ if ($pdo) {
         </div>
     </div>
 
-    <!-- Coluna Direita: Últimas Alterações Reais & Card Documentação -->
     <div class="space-y-6">
-        <!-- Últimas Alterações com autor e ação reais -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
             <div class="mb-4">
                 <h2 class="text-base font-bold text-slate-900">Últimas alterações</h2>
@@ -259,7 +242,6 @@ if ($pdo) {
             </div>
         </div>
 
-        <!-- Banner Precisa de Ajuda -->
         <div class="rounded-2xl p-6 bg-indigo-600 text-white shadow-lg shadow-indigo-200">
             <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white mb-4">
                 <i data-lucide="help-circle" class="w-6 h-6"></i>

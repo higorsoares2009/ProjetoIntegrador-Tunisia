@@ -1,8 +1,6 @@
 <?php
 /**
  * Meu Perfil — Tunísia CMS
- * Alteração de foto de perfil (upload com pré-visualização), nome, e-mail e senha.
- * Atualiza dados em sessão e sincroniza avatar em todo o painel.
  */
 $pageTitle = 'Meu Perfil';
 $activePage = 'settings';
@@ -15,8 +13,6 @@ $userId = (int)($currentUser['id'] ?? 1);
 
 $successMsg = '';
 $errorMsg = '';
-
-// Recarrega dados mais atualizados do banco
 if ($pdo) {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
     $stmt->execute([$userId]);
@@ -50,13 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errorMsg = 'Endereço de e-mail inválido.';
         } else {
-            // Verifica duplicidade de e-mail
             $stmtCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
             $stmtCheck->execute([$email, $userId]);
             if ($stmtCheck->fetch()) {
                 $errorMsg = 'Este e-mail já está em uso por outro membro.';
             } else {
-                // Upload ou Recorte de Foto de Perfil
                 $croppedData = trim($_POST['avatar_cropped_data'] ?? '');
                 if ($croppedData !== '' && preg_match('/^data:image\/(png|jpeg|webp);base64,/', $croppedData, $matches)) {
                     $ext = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
@@ -95,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (empty($errorMsg)) {
-                    // Troca de Senha Opcional
                     $updatePassword = false;
                     $newHash = null;
 
@@ -107,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         } elseif ($newPassword !== $confirmPassword) {
                             $errorMsg = 'A confirmação da nova senha não confere.';
                         } else {
-                            // Valida senha atual
                             $stmtP = $pdo->prepare("SELECT password FROM users WHERE id = ?");
                             $stmtP->execute([$userId]);
                             $currHash = $stmtP->fetchColumn();
@@ -128,8 +120,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $stmtUp = $pdo->prepare("UPDATE users SET name = ?, email = ?, avatar = ?, updated_at = NOW() WHERE id = ?");
                             $stmtUp->execute([$name, $email, $avatarPath, $userId]);
                         }
-
-                        // Atualiza sessão
                         $_SESSION['user']['name'] = $name;
                         $_SESSION['user']['email'] = $email;
                         $_SESSION['user']['avatar'] = $avatarPath;
@@ -146,8 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
-
-<!-- Header da Página -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Meu Perfil</h1>
@@ -177,8 +165,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
 <form method="POST" enctype="multipart/form-data" class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm max-w-3xl space-y-8">
     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-
-    <!-- Seção: Foto de Perfil -->
     <div class="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-slate-100">
         <div class="relative w-24 h-24 rounded-full bg-slate-100 border-2 border-slate-200 overflow-hidden shrink-0 shadow-sm group">
             <?php if (!empty($currentUser['avatar'])): ?>
@@ -202,8 +188,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <input type="hidden" name="avatar_cropped_data" id="avatarCroppedData" value="">
         </div>
     </div>
-
-    <!-- Modal de Recorte Interativo de Avatar -->
     <div id="cropModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -213,7 +197,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <div class="flex flex-col items-center gap-3">
                 <div class="relative w-64 h-64 bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center">
                     <canvas id="cropCanvas" width="256" height="256" class="cursor-grab active:cursor-grabbing"></canvas>
-                    <!-- Guia circular -->
                     <div class="absolute inset-0 pointer-events-none rounded-full border-2 border-white/80 shadow-[0_0_0_9999px_rgba(15,23,42,0.5)]"></div>
                 </div>
                 <div class="w-full flex items-center gap-3 px-2">
@@ -229,8 +212,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             </div>
         </div>
     </div>
-
-    <!-- Informações Pessoais -->
     <div class="space-y-4">
         <h3 class="text-sm font-bold text-slate-900">Informações Pessoais</h3>
 
@@ -252,8 +233,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <p class="text-[11px] text-slate-400 mt-1">O papel só pode ser alterado por outro Administrador em Configurações.</p>
         </div>
     </div>
-
-    <!-- Alteração de Senha -->
     <div class="space-y-4 pt-6 border-t border-slate-100">
         <h3 class="text-sm font-bold text-slate-900">Alterar Senha</h3>
         <p class="text-xs text-slate-400">Deixe em branco se não desejar alterar a senha atual.</p>
@@ -300,7 +279,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 zoomInput.value = 1;
                 cropState.x = (canvas.width - rawImg.width) / 2;
                 cropState.y = (canvas.height - rawImg.height) / 2;
-                // auto escala para caber no canvas
                 const minScale = Math.max(canvas.width / rawImg.width, canvas.height / rawImg.height);
                 cropState.baseScale = minScale;
                 drawCanvas();
@@ -338,7 +316,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     zoomInput.addEventListener('input', (e) => {
         const oldZoom = cropState.zoom;
         cropState.zoom = parseFloat(e.target.value);
-        // Ajusta centro ao dar zoom
         const scaleDiff = cropState.zoom / oldZoom;
         const cx = canvas.width / 2;
         const cy = canvas.height / 2;
@@ -352,7 +329,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     }
 
     function applyCrop() {
-        // Gera recorte em alta qualidade (320x320)
         const outputCanvas = document.createElement('canvas');
         outputCanvas.width = 320;
         outputCanvas.height = 320;

@@ -11,14 +11,13 @@ require_once __DIR__ . '/../includes/scheduler.php';
 require_once __DIR__ . '/../includes/section_style.php';
 
 $pdo = getPDO();
-if ($pdo) ensureSchema($pdo); // garante a coluna publish_at em bancos antigos
+if ($pdo) ensureSchema($pdo);
 $schedulingEnabled = $pdo ? (getSiteSetting($pdo, 'enable_scheduling', '1') === '1') : false;
 $sectionId = max(0, (int)($_GET['id'] ?? 0));
 $isNewSection = ($sectionId === 0);
 $successMsg = '';
 $errorMsg = '';
 
-// Carrega a seção do banco
 $section = null;
 if ($pdo) {
     $stmt = $pdo->prepare("SELECT * FROM sections WHERE id = ? LIMIT 1");
@@ -26,7 +25,6 @@ if ($pdo) {
     $section = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// Se houver rascunho salvo, o formulário edita esse snapshot sem alterar a versão pública.
 $loadedDraft = [];
 if (is_array($section) && !empty($section['draft_data'])) {
     $decodedDraft = json_decode((string)$section['draft_data'], true);
@@ -38,7 +36,6 @@ if (is_array($section) && !empty($section['draft_data'])) {
     }
 }
 
-// Concorrência: verifica e renova lock de edição (válido por 3 minutos)
 $isLockedByOther = false;
 $lockedByUserName = '';
 $currentUserId = (int)($_SESSION['user']['id'] ?? 0);
@@ -46,20 +43,17 @@ $currentUserId = (int)($_SESSION['user']['id'] ?? 0);
 if ($pdo && $section && !empty($section['id'])) {
     if (!empty($section['locked_by']) && (int)$section['locked_by'] !== $currentUserId && !empty($section['locked_at'])) {
         $lockAge = time() - strtotime($section['locked_at']);
-        if ($lockAge < 180) { // menos de 3 minutos
+        if ($lockAge < 180) { 
             $isLockedByOther = true;
             $stmtLockUser = $pdo->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
             $stmtLockUser->execute([$section['locked_by']]);
             $lockedByUserName = $stmtLockUser->fetchColumn() ?: 'Outro membro da equipe';
         }
     }
-    // Se não estiver bloqueado por outro, adquire ou renova o lock para o usuário atual
     if (!$isLockedByOther && $currentUserId > 0) {
         $pdo->prepare("UPDATE sections SET locked_by = ?, locked_at = NOW() WHERE id = ?")->execute([$currentUserId, $sectionId]);
     }
 }
-
-// Fallback inicial se não existir
 if (!$section) {
     $section = [
         'id' => 0,
@@ -94,7 +88,6 @@ $styleValues = isset($loadedDraft['style']) && is_array($loadedDraft['style'])
 $pageTitle = $isNewSection ? 'Nova seção' : ($section['title'] ?: 'Editar seção');
 $activePage = 'content';
 
-// Processa salvamento (Salvar Rascunho ou Publicar)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verifyCsrfToken($csrf)) {
@@ -325,7 +318,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
 
-<!-- Header do Editor -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
         <div class="flex items-center gap-2 mb-1">
@@ -442,11 +434,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
 }
 </style>
 
-<!-- Formulário Principal e Preview ao Lado -->
 <form method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
 
-    <!-- Coluna Esquerda: Formulário de Edição (7 Colunas) -->
     <div class="lg:col-span-7 min-w-0 bg-white rounded-3xl p-5 sm:p-8 border border-slate-200 shadow-sm space-y-6">
         <?php if (!empty($isLockedByOther)): ?>
         <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-3">
@@ -716,7 +706,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     <?php $first = false; endforeach; ?>
                 </div>
 
-                <!-- LAYOUT -->
                 <div class="sxp-pane is-active" data-pane="layout" role="tabpanel">
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('text_align', 'Alinhamento do conteúdo'); ?></div>
@@ -730,7 +719,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <!-- FUNDO -->
                 <div class="sxp-pane" data-pane="fundo" role="tabpanel">
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('bg_mode', 'Cor de fundo'); ?></div>
@@ -776,7 +764,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <!-- TEXTO -->
                 <div class="sxp-pane" data-pane="texto" role="tabpanel">
                     <div class="sxp-grid">
                         <?php $sxSelect('title_font', 'Fonte do título', $sxFontOptions); $sxSelect('body_font', 'Fonte do texto', $sxFontOptions); ?>
@@ -793,7 +780,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <!-- CORES -->
                 <div class="sxp-pane" data-pane="cores" role="tabpanel">
                     <div class="sxp-grid">
                         <?php
@@ -804,7 +790,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <!-- CARDS E BOTÕES -->
                 <div class="sxp-pane" data-pane="cards" role="tabpanel">
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('card_style', 'Estilo dos cards'); ?></div>
@@ -815,7 +800,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <!-- EFEITOS -->
                 <div class="sxp-pane" data-pane="efeitos" role="tabpanel">
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('animation', 'Animação ao rolar a página', 'Respeita a opção "reduzir movimento" do sistema do visitante.'); ?></div>
@@ -869,9 +853,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
     </div>
 
-    <!-- Coluna Direita: Preview Vivo da Seção com Redimensionamento (5 Colunas) -->
     <div class="lg:col-span-5 min-w-0 flex flex-col lg:sticky lg:top-6">
-        <!-- Barra de Navegação Mockup Browser -->
         <div class="bg-white rounded-t-3xl border border-b-0 border-slate-200 p-4 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-slate-300"></span>
@@ -886,7 +868,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             </div>
         </div>
 
-        <!-- Janela de Visualização Mockup -->
         <div id="previewMockupWrapper" class="w-full transition-all duration-300 flex justify-center">
             <?php 
                 $activeBg = !empty($section['video_path']) ? $section['video_path'] : ($styleValues['bg_image'] ?? '');
@@ -896,19 +877,16 @@ require_once __DIR__ . '/../includes/admin_header.php';
             ?>
             <div id="previewMockupCard" class="w-full bg-slate-900 rounded-b-3xl border border-slate-200 overflow-hidden relative shadow-lg min-h-[460px] flex flex-col justify-between text-white p-6 transition-all duration-300" style="background-image: <?= $initialImgUrl ? "linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.8)), url('{$initialImgUrl}')" : 'none' ?>; background-size: cover; background-position: center;">
                 
-                <!-- Vídeo de fundo em tempo real -->
                 <video id="previewVideoBg" autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover pointer-events-none <?= !$initialIsVideo ? 'hidden' : '' ?>" style="z-index: 0;">
                     <source src="<?= e($initialVideoUrl) ?>" type="video/mp4">
                 </video>
                 <div id="previewVideoOverlay" class="absolute inset-0 bg-slate-950/60 pointer-events-none <?= !$initialIsVideo ? 'hidden' : '' ?>" style="z-index: 1;"></div>
 
-                <!-- Navbar Mockup Interna -->
                 <div class="relative flex items-center justify-between border-b border-white/10 pb-4" style="z-index: 2;">
                     <span class="font-bold text-sm tracking-tight text-white">Tunísia CMS</span>
                     <span class="text-[10px] bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 px-2.5 py-0.5 rounded-full font-medium">Seção: #<?= e($section['identifier']) ?></span>
                 </div>
 
-                <!-- Conteúdo Central Vivo da Seção Aberta -->
                 <div class="relative my-auto py-8" style="z-index: 2;">
                     <div class="mb-2">
                         <span id="liveBadge" class="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded">
@@ -927,7 +905,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <!-- Rodapé Mockup -->
                 <div class="relative text-[10px] text-white/50 border-t border-white/10 pt-3 flex justify-between items-center" style="z-index: 2;">
                     <span>Pré-visualização ao vivo</span>
                     <span>Modo de Edição</span>

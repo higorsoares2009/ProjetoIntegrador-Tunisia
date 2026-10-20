@@ -1,12 +1,4 @@
 <?php
-/**
- * Bootstrap de administrador. Somente CLI: não exponha este script pela web.
- * Exemplo PowerShell:
- *   $env:ADMIN_EMAIL="admin@seudominio.com"
- *   $env:ADMIN_PASSWORD="uma-senha-forte-e-unica"
- *   $env:ADMIN_NAME="Administrador"
- *   & "C:\xampp\php\php.exe" admin\create_admin.php
- */
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit('Not found');

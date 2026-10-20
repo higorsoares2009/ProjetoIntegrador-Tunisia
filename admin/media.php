@@ -12,7 +12,6 @@ $pdo = getPDO();
 $successMsg = '';
 $errorMsg = '';
 
-// Processamento de Upload Real (Com suporte completo a vídeos e imagens)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file'])) {
     $csrf = $_POST['csrf_token'] ?? '';
     if (!verifyCsrfToken($csrf)) {
@@ -26,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file'])) {
             if (!is_uploaded_file($file['tmp_name'])) { $fileMime = ''; }
             $fileSize = $file['size'];
 
-            // Limite de 50MB para vídeos / arquivos pesados
             if ($fileSize > 50 * 1024 * 1024) {
                 $errorMsg = 'O arquivo excede o limite máximo permitido de 50MB.';
             } elseif (!in_array($fileMime, $allowedMimes)) {
@@ -66,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['media_file'])) {
     }
 }
 
-// Exclusão segura: somente POST autenticado com token CSRF válido.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_media_id'])) {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
         $errorMsg = 'Sessão inválida ou expirada. Atualize a página e tente novamente.';
@@ -81,12 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_media_id'])) {
             $relative = ltrim((string)$item['filepath'], '/\\');
             $baseDir = realpath(__DIR__ . '/../uploads/media');
             $fullPath = realpath(__DIR__ . '/../' . $relative);
-            // Nunca permite que um caminho manipulado remova arquivos fora da biblioteca.
             if ($fullPath && $baseDir && str_starts_with($fullPath, $baseDir . DIRECTORY_SEPARATOR) && is_file($fullPath)) {
                 if (!@unlink($fullPath)) {
                     $errorMsg = 'Não foi possível remover o arquivo do servidor.';
                 } else {
-                    // Remove também as versões otimizadas geradas no upload.
                     $stem = preg_replace('/\.[A-Za-z0-9]+$/', '', $fullPath);
                     foreach ([$stem . '.webp', $stem . '-thumb.webp'] as $derived) {
                         if (is_file($derived) && str_starts_with(realpath($derived) ?: '', $baseDir . DIRECTORY_SEPARATOR)) {
@@ -104,7 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_media_id'])) {
     }
 }
 
-// Atualização de texto alternativo para acessibilidade e SEO.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_alt_text_id'])) {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? null)) {
         $errorMsg = 'Sessão inválida ou expirada.';
@@ -119,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_alt_text_id'])) 
     }
 }
 
-// Lista de arquivos (com filtro opcional ?q= vindo da busca global)
 $mediaQuery = trim((string)($_GET['q'] ?? ''));
 $mediaList = [];
 if ($pdo) {
@@ -140,7 +133,6 @@ if ($pdo) {
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
 
-<!-- Header da Página -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Biblioteca de mídia</h1>
@@ -169,7 +161,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 <?php endif; ?>
 
-<!-- Área Drag & Drop de Upload (Aceita vídeos MP4/WebM e imagens) -->
 <form id="uploadForm" method="POST" enctype="multipart/form-data" class="mb-8">
     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
     <input type="file" id="fileUploadInput" name="media_file" class="hidden" accept="image/*,.pdf,video/mp4,video/webm,video/ogg" onchange="document.getElementById('uploadForm').submit()">
@@ -183,7 +174,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 </form>
 
-<!-- Barra de Resumo e Armazenamento -->
 <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-slate-500 font-medium">
         <span class="text-slate-800 font-bold"><?= count($mediaList) ?> arquivos</span>
@@ -210,11 +200,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
     <?php endif; ?>
 <?php endif; ?>
 
-<!-- Grid de Miniaturas de Mídia -->
 <div class="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
     <?php foreach ($mediaList as $m): ?>
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between group">
-            <!-- Renderização da Miniatura (Imagem ou Vídeo) -->
             <div class="h-44 bg-slate-900 overflow-hidden relative flex items-center justify-center">
                 <?php
                     $path = SITE_URL . '/' . $m['filepath'];
@@ -239,7 +227,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <?php endif; ?>
             </div>
 
-            <!-- Dados do Arquivo -->
             <div class="p-4">
                 <p class="font-semibold text-slate-800 text-xs truncate mb-1" title="<?= e($m['filename']) ?>">
                     <?= e($m['filename']) ?>

@@ -6,7 +6,6 @@
  */
 require_once __DIR__ . '/../config/database.php';
 
-/** Tabelas cujos dados NÃO entram no backup (sensíveis/temporárias); a estrutura é mantida. */
 const BACKUP_SKIP_DATA = ['login_attempts', 'password_resets'];
 
 function backupDir(): string {
@@ -18,7 +17,6 @@ function ensureBackupDir(): bool {
     $dir = backupDir();
     if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) return false;
     if (!is_writable($dir)) return false;
-    // Defesa em profundidade caso a pasta esteja dentro da raiz pública.
     if (!is_file($dir . '/.htaccess')) {
         @file_put_contents($dir . '/.htaccess', "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order allow,deny\n    Deny from all\n</IfModule>\n");
     }
@@ -48,7 +46,6 @@ function dumpDatabaseToFile(PDO $pdo, string $path): void {
 
             if (in_array($table, BACKUP_SKIP_DATA, true)) continue;
 
-            // Leitura sem buffer: tabelas grandes (page_views) não estouram a memória.
             $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
             $rows = $pdo->query('SELECT * FROM ' . $q($table));
             $batch = [];
@@ -81,17 +78,13 @@ function dumpDatabaseToFile(PDO $pdo, string $path): void {
     }
 }
 
-/**
- * Cria um backup (.zip com database.sql + uploads/media; ou .sql.gz se a extensão zip não existir).
- * @return array{ok: bool, file?: string, size?: int, error?: string, note?: string}
- */
 function createBackup(PDO $pdo, ?bool $withUploads = null): array {
     $withUploads = $withUploads ?? (envValue('BACKUP_INCLUDE_UPLOADS', '1') !== '0');
     if (!ensureBackupDir()) {
         return ['ok' => false, 'error' => 'Não foi possível criar/gravar a pasta de backups (' . backupDir() . ').'];
     }
 
-    $suffix = date('Ymd-His') . '-' . bin2hex(random_bytes(4)); // sufixo aleatório: nome não adivinhável
+    $suffix = date('Ymd-His') . '-' . bin2hex(random_bytes(4)); 
     $tmpSql = backupDir() . '/.dump-' . $suffix . '.sql';
     $note = '';
     $target = '';
@@ -111,7 +104,6 @@ function createBackup(PDO $pdo, ?bool $withUploads = null): array {
                     if (!is_file($file) || basename($file) === '.htaccess') continue;
                     $entry = 'uploads/media/' . basename($file);
                     $zip->addFile($file, $entry);
-                    // Imagens e vídeos já são comprimidos: apenas armazena (mais rápido).
                     if (preg_match('/\.(png|jpe?g|webp|gif|mp4|pdf)$/i', $file) && method_exists($zip, 'setCompressionName')) {
                         $zip->setCompressionName($entry, ZipArchive::CM_STORE);
                     }
@@ -154,10 +146,9 @@ function createBackup(PDO $pdo, ?bool $withUploads = null): array {
     return ['ok' => true, 'file' => basename($target), 'size' => $size, 'note' => $note];
 }
 
-/** Lista os backups existentes (mais novos primeiro). */
 function listBackups(int $limit = 10): array {
     $files = array_merge(glob(backupDir() . '/backup-*.zip') ?: [], glob(backupDir() . '/backup-*.sql.gz') ?: []);
-    rsort($files, SORT_STRING); // o nome começa com a data: ordem alfabética = ordem cronológica
+    rsort($files, SORT_STRING); 
     $list = [];
     foreach (array_slice($files, 0, $limit) as $file) {
         $list[] = ['file' => basename($file), 'size' => (int)filesize($file), 'time' => (int)filemtime($file)];
@@ -169,7 +160,6 @@ function isValidBackupName(string $name): bool {
     return (bool)preg_match('/^backup-\d{8}-\d{6}-[a-f0-9]{8}\.(zip|sql\.gz)$/', $name);
 }
 
-/** Mantém apenas os N backups mais recentes. */
 function pruneBackups(int $keep): void {
     $files = array_merge(glob(backupDir() . '/backup-*.zip') ?: [], glob(backupDir() . '/backup-*.sql.gz') ?: []);
     rsort($files, SORT_STRING);

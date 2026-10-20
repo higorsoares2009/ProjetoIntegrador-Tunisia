@@ -3,7 +3,6 @@
 </div>
 
 <script>
-    // Inicializa ícones Lucide
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }

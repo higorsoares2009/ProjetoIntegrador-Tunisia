@@ -1,12 +1,4 @@
 <?php
-/**
- * Envio de e-mail por SMTP (sem dependências externas).
- *
- * Configuração pelo .env:
- *   SMTP_HOST, SMTP_PORT (587), SMTP_SECURE (tls = STARTTLS | ssl | none),
- *   SMTP_USER, SMTP_PASS, MAIL_FROM, MAIL_FROM_NAME, SMTP_VERIFY_TLS (1)
- * Sem SMTP_HOST configurado, cai para a função mail() do PHP (depende do servidor).
- */
 require_once __DIR__ . '/../config/database.php';
 
 function mailConfig(): array {
@@ -26,7 +18,6 @@ function mailerIsConfigured(): bool {
     return mailConfig()['host'] !== '';
 }
 
-/** Remove quebras de linha de valores de cabeçalho (impede injeção de cabeçalhos). */
 function mailHeaderSafe(string $value): string {
     return trim((string)preg_replace('/[\r\n]+/', ' ', $value));
 }
@@ -36,7 +27,6 @@ function mailEncodeHeader(string $value): string {
     return preg_match('/[^\x20-\x7E]/', $value) ? '=?UTF-8?B?' . base64_encode($value) . '?=' : $value;
 }
 
-/** Endereço do remetente: MAIL_FROM, ou SMTP_USER (se for e-mail), ou no-reply@domínio-do-site. */
 function mailFromAddress(array $cfg): string {
     if ($cfg['from'] !== '' && filter_var($cfg['from'], FILTER_VALIDATE_EMAIL)) return $cfg['from'];
     if ($cfg['user'] !== '' && filter_var($cfg['user'], FILTER_VALIDATE_EMAIL)) return $cfg['user'];
@@ -44,10 +34,7 @@ function mailFromAddress(array $cfg): string {
     return 'no-reply@' . preg_replace('/[^A-Za-z0-9.\-]/', '', (string)$host);
 }
 
-/**
- * Envia um e-mail de texto simples (UTF-8).
- * @return array{ok: bool, error: string}
- */
+
 function sendAppMail(string $to, string $subject, string $body): array {
     $to = trim($to);
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
@@ -72,7 +59,6 @@ function sendAppMail(string $to, string $subject, string $body): array {
     $encodedBody = chunk_split(base64_encode($body), 76, "\r\n");
 
     if ($cfg['host'] === '') {
-        // Sem SMTP: usa mail() (pode não estar configurado no servidor).
         if (!function_exists('mail')) return ['ok' => false, 'error' => 'SMTP não configurado e mail() indisponível.'];
         $extra = implode("\r\n", array_slice($headers, 1, 1)) . "\r\n" . implode("\r\n", array_slice($headers, 4));
         $ok = @mail($to, mailEncodeHeader($subject), $encodedBody, $extra);
@@ -83,10 +69,6 @@ function sendAppMail(string $to, string $subject, string $body): array {
     return smtpDeliver($cfg, $from, $to, $message);
 }
 
-/**
- * Agenda o envio para depois que a resposta HTTP já foi entregue ao usuário
- * (não trava a página e não revela, pelo tempo de resposta, se um e-mail existe).
- */
 function queueAppMail(string $to, string $subject, string $body): void {
     register_shutdown_function(function () use ($to, $subject, $body) {
         finishResponse();
@@ -97,7 +79,6 @@ function queueAppMail(string $to, string $subject, string $body): void {
     });
 }
 
-/** Conversa SMTP completa. Nunca registra credenciais nos erros. */
 function smtpDeliver(array $cfg, string $from, string $to, string $message): array {
     $fail = function ($fp, string $msg) {
         if (is_resource($fp)) { @fwrite($fp, "QUIT\r\n"); @fclose($fp); }
@@ -118,7 +99,6 @@ function smtpDeliver(array $cfg, string $from, string $to, string $message): arr
     if (!$fp) return ['ok' => false, 'error' => "Não foi possível conectar ao servidor SMTP ({$cfg['host']}:{$cfg['port']}): $errstr"];
     stream_set_timeout($fp, 15);
 
-    // Lê uma resposta (suporta respostas em múltiplas linhas "250-...").
     $read = function () use ($fp): string {
         $data = '';
         while (($line = fgets($fp, 1024)) !== false) {
@@ -157,7 +137,6 @@ function smtpDeliver(array $cfg, string $from, string $to, string $message): arr
     if ($rcpt !== 250 && $rcpt !== 251) return $fail($fp, 'O servidor SMTP recusou o destinatário.');
     if ($code($send('DATA')) !== 354) return $fail($fp, 'O servidor SMTP não aceitou o envio da mensagem.');
 
-    // Normaliza quebras de linha e aplica "dot-stuffing" (linhas iniciadas por ponto).
     $payload = str_replace(["\r\n", "\r"], "\n", $message);
     $payload = str_replace("\n", "\r\n", $payload);
     $payload = preg_replace('/^\./m', '..', $payload);

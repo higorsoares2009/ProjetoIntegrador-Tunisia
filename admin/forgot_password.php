@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $email = trim((string)($_POST['email'] ?? ''));
         $ip = getClientIp();
-        $done = true; // a resposta é a mesma em qualquer caso
+        $done = true; 
 
         if ($pdo && filter_var($email, FILTER_VALIDATE_EMAIL)) {
             try {
@@ -39,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $byUser->execute([(int)$user['id']]);
                     if ((int)$byUser->fetchColumn() < 3) {
                         $token = bin2hex(random_bytes(32));
-                        // Só o hash fica no banco: um vazamento da tabela não permite redefinir senhas.
                         $pdo->prepare("INSERT INTO password_resets (user_id, token_hash, expires_at, ip_address, created_at) VALUES (?, ?, (NOW() + INTERVAL 1 HOUR), ?, NOW())")
                             ->execute([(int)$user['id'], hash('sha256', $token), $ip]);
 

@@ -1,7 +1,6 @@
 <?php
 /**
  * Preview do Site — Tunísia CMS
- * Fiel à página 7 do design
  */
 $pageTitle = 'Preview Do Site';
 $activePage = 'preview';
@@ -11,7 +10,6 @@ requireAuth();
 $pdo = getPDO();
 $successMsg = '';
 
-// Publicar alterações
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['publish_all'])) {
     if ($pdo) {
         $pdo->query("UPDATE sections SET status = 'published'");
@@ -23,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['publish_all'])) {
 require_once __DIR__ . '/../includes/admin_header.php';
 ?>
 
-<!-- Header do Preview (Fiel à página 7) -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div>
         <p class="text-xs text-slate-400">Revise os conteúdos como seus visitantes irão vê-lo</p>
@@ -51,9 +48,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 <?php endif; ?>
 
-<!-- Janela de Simulação do Navegador -->
 <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-    <!-- Barra Superior Browser -->
     <div class="p-3 sm:p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
         <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-slate-300"></span>
@@ -68,8 +63,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             <button type="button" id="btnDeviceMobile" onclick="setDevice('mobile')" class="px-3 py-1 rounded-lg text-slate-500 hover:text-slate-800 transition">Mobile</button>
         </div>
     </div>
-
-    <!-- Container do Iframe / Site Vivo -->
     <div class="bg-slate-200/50 p-2 sm:p-4 flex justify-center items-start sm:items-center min-h-[480px] sm:min-h-[650px] transition-all">
         <div id="previewFrameContainer" class="w-full max-w-full h-[560px] sm:h-[700px] bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300">
             <iframe id="previewIframe" src="<?= SITE_URL ?>/index.php" class="w-full h-full border-0"></iframe>

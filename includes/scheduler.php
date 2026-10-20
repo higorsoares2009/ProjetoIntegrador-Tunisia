@@ -1,12 +1,7 @@
 <?php
 /**
  * Publicação agendada e rotinas periódicas (backup diário).
- *
- * Como executar:
- *   - Recomendado: cron do servidor chamando `php scripts/cron.php` a cada minuto
- *     (ou, em hospedagens sem terminal, uma URL com token: /cron.php?token=CRON_TOKEN).
- *   - Reserva automática: sem cron, visitas ao site/painel disparam a verificação no máximo
- *     1x por minuto (maybeRunScheduler), após o envio da resposta ao visitante.
+
  */
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/schema.php';
@@ -29,10 +24,6 @@ function saveSiteSetting(PDO $pdo, string $key, string $value, string $group = '
         ->execute([$key, $value, $group]);
 }
 
-/**
- * Aplica o conteúdo de um rascunho (payload JSON do editor) à seção publicada.
- * Deve ser chamado dentro de uma transação aberta pelo chamador.
- */
 function applySectionPayload(PDO $pdo, int $sectionId, array $data): void {
     $update = $pdo->prepare("UPDATE sections SET
             title = COALESCE(NULLIF(?, ''), title), subtitle = ?, badge = ?, description = ?,
@@ -84,12 +75,10 @@ function applySectionPayload(PDO $pdo, int $sectionId, array $data): void {
     }
 }
 
-/** Publica as seções cuja data agendada já chegou. Retorna quantas foram publicadas. */
 function publishDueSections(PDO $pdo): int {
     if (getSiteSetting($pdo, 'enable_scheduling', '1') !== '1') return 0;
     ensureSchema($pdo);
 
-    // Trava no MySQL: evita que cron e visitantes publiquem a mesma seção ao mesmo tempo.
     if ((int)$pdo->query("SELECT GET_LOCK('tunisia_publish', 0)")->fetchColumn() !== 1) return 0;
 
     $published = 0;
@@ -107,7 +96,7 @@ function publishDueSections(PDO $pdo): int {
                                    VALUES (?, ?, ?, NULL, 'Agendador', 'published', 'Publicação agendada', NOW())")
                         ->execute([$sectionId, mb_substr((string)($data['title'] ?? $row['title']), 0, 150), (string)$row['draft_data']]);
                 } else {
-                    // Nada para publicar (o rascunho já foi publicado/descartado): só limpa o agendamento.
+                   
                     $pdo->prepare('UPDATE sections SET publish_at = NULL WHERE id = ?')->execute([$sectionId]);
                 }
                 $pdo->commit();
@@ -127,17 +116,13 @@ function publishDueSections(PDO $pdo): int {
         $pdo->query("SELECT RELEASE_LOCK('tunisia_publish')")->fetchColumn();
     }
 
-    if ($published > 0) purgeSiteCache(); // depois do commit: o próximo visitante já vê a versão nova
+    if ($published > 0) purgeSiteCache(); 
     return $published;
 }
 
-/**
- * Reserva sem cron: verifica publicações vencidas no máximo 1x por minuto.
- * Pensado para rodar em register_shutdown_function (após a resposta ser enviada).
- */
 function maybeRunScheduler(): void {
     if (!is_dir(CACHE_DIR)) { @mkdir(CACHE_DIR, 0755, true); }
-    if (!is_dir(CACHE_DIR) || !is_writable(CACHE_DIR)) return; // sem pasta gravável, só via cron
+    if (!is_dir(CACHE_DIR) || !is_writable(CACHE_DIR)) return; 
     $stamp = CACHE_DIR . '/scheduler.last';
     if (is_file($stamp) && (time() - (int)filemtime($stamp)) < 60) return;
     @touch($stamp);
@@ -151,7 +136,6 @@ function maybeRunScheduler(): void {
     }
 }
 
-/** Registra maybeRunScheduler() para rodar após a resposta (use no topo de páginas). */
 function registerSchedulerCheck(): void {
     register_shutdown_function(function () {
         finishResponse();
@@ -159,10 +143,6 @@ function registerSchedulerCheck(): void {
     });
 }
 
-/**
- * Rotina completa do cron: publicações vencidas + backup diário (se "backup automático" estiver ativo).
- * @return array{published:int, backup:?array}
- */
 function runScheduledJobs(PDO $pdo): array {
     $result = ['published' => publishDueSections($pdo), 'backup' => null];
 

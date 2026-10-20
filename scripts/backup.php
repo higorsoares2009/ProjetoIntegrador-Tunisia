@@ -1,9 +1,6 @@
 <?php
 /**
  * Backup manual/agendado (banco + uploads). Somente terminal.
- *   php scripts/backup.php              -> respeita a opção "backup automático" do painel
- *   php scripts/backup.php --force      -> executa sempre
- *   php scripts/backup.php --db-only    -> não inclui a pasta uploads
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit('Not found'); }
 require_once __DIR__ . '/../includes/scheduler.php';

@@ -11,7 +11,6 @@ require_once __DIR__ . '/../includes/section_style.php';
 $pdo = getPDO();
 $filter = $_GET['filter'] ?? 'all';
 
-// Exclusão, Restauração e Limpeza de seção: somente administrador, via POST e com validação CSRF.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['delete_section', 'restore_section', 'force_delete'], true)) {
     requireAuth(true);
     $action = $_POST['action'];
@@ -35,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                 }
 
                 if ($action === 'delete_section') {
-                    // Soft delete: move para a lixeira
                     $stmt = $pdo->prepare('UPDATE sections SET deleted_at = NOW() WHERE id = ?');
                     $stmt->execute([$secId]);
                     purgeSiteCache();
@@ -43,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                     createNotification('excluiu', 'Seção na Lixeira', "A seção “{$sectionFound['title']}” foi movida para a lixeira.");
                     $_SESSION['content_flash_success'] = 'A seção “' . $sectionFound['title'] . '” foi movida para a lixeira.';
                 } elseif ($action === 'restore_section') {
-                    // Restaura da lixeira
                     $stmt = $pdo->prepare('UPDATE sections SET deleted_at = NULL WHERE id = ?');
                     $stmt->execute([$secId]);
                     purgeSiteCache();
@@ -51,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
                     createNotification('restaurou', 'Seção Restaurada', "A seção “{$sectionFound['title']}” foi restaurada da lixeira.");
                     $_SESSION['content_flash_success'] = 'A seção “' . $sectionFound['title'] . '” foi restaurada com sucesso.';
                 } elseif ($action === 'force_delete') {
-                    // Exclusão permanente
                     $stmt = $pdo->prepare('DELETE FROM sections WHERE id = ?');
                     $stmt->execute([$secId]);
                     purgeSiteCache();
@@ -107,7 +103,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 <?php endif; ?>
 
-<!-- Header da Página -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Conteúdo do site</h1>
@@ -115,7 +110,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
     </div>
 
     <div class="flex items-center gap-3">
-        <!-- Controles de Reordenação (aparecem quando ativado) -->
         <div id="reorderActionGroup" class="hidden items-center gap-2">
             <button type="button" onclick="cancelReorder()" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition">
                 Cancelar
@@ -137,8 +131,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </a>
     </div>
 </div>
-
-<!-- Barra de Notificação de Modo de Reordenação -->
 <div id="reorderBanner" class="hidden mb-6 p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-sm flex items-center justify-between">
     <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
@@ -154,8 +146,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         <button type="button" onclick="saveNewOrder()" class="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold shadow hover:bg-indigo-700">Salvar Nova Ordem</button>
     </div>
 </div>
-
-<!-- Filtros Reais -->
 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
     <div class="flex items-center gap-2">
         <a href="<?= ADMIN_URL ?>/content.php?filter=all" class="px-4 py-2 rounded-xl text-xs font-semibold transition <?= $filter === 'all' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200' ?>">
@@ -177,8 +167,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         <?= count($sections) ?> <?= count($sections) === 1 ? 'seção encontrada' : 'seções encontradas' ?>
     </span>
 </div>
-
-<!-- Grid de Cards de Seções com Drag and Drop -->
 <?php if (empty($sections)): ?>
     <div class="bg-white rounded-3xl border border-slate-200 p-12 text-center">
         <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
@@ -192,23 +180,19 @@ require_once __DIR__ . '/../includes/admin_header.php';
     <div id="sectionsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($sections as $s): ?>
             <?php
-                // Processa o style_data para verificar se há fundo ou vídeo salvo nas configurações de estilo
                 $styleData = decodeSectionStyle($s['style_data'] ?? '');
                 
                 $mediaPath = '';
                 $isVideo = false;
 
-                // 1. Prioridade para o campo dedicado de vídeo
                 if (!empty($s['video_path'])) {
                     $mediaPath = $s['video_path'];
                     $isVideo = true;
                 } 
-                // 2. Verifica se foi selecionado vídeo ou imagem na aba fundo (style_data)
                 elseif (!empty($styleData['bg_image'])) {
                     $mediaPath = $styleData['bg_image'];
                     $isVideo = (bool)preg_match('/\.(mp4|webm|ogg)$/i', $mediaPath);
                 } 
-                // 3. Fallback para image_path tradicional
                 elseif (!empty($s['image_path'])) {
                     $mediaPath = $s['image_path'];
                     $isVideo = (bool)preg_match('/\.(mp4|webm|ogg)$/i', $mediaPath);
@@ -222,13 +206,10 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
             <div data-id="<?= (int)$s['id'] ?>" class="section-card bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group relative">
                 
-                <!-- Indicador de Ordem / Drag Handle -->
                 <div class="drag-handle hidden absolute top-3 left-3 z-10 bg-slate-900/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-xs font-semibold items-center gap-1.5 cursor-grab shadow">
                     <i data-lucide="grip-vertical" class="w-3.5 h-3.5"></i>
                     <span class="order-number">#<?= (int)$s['display_order'] ?></span>
                 </div>
-
-                <!-- Status Badge -->
                 <div class="absolute top-3 right-3 z-10">
                     <?php if (!empty($s['deleted_at'])): ?>
                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/90 backdrop-blur-sm text-white shadow-sm">
@@ -244,8 +225,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         </span>
                     <?php endif; ?>
                 </div>
-
-                <!-- Mídia da Seção (Vídeo ou Imagem real) -->
                 <div class="h-44 bg-slate-900 overflow-hidden relative">
                     <?php if ($isVideo && $mediaUrl): ?>
                         <video src="<?= e($mediaUrl) ?>" autoplay muted loop playsinline class="w-full h-full object-cover group-hover:scale-105 transition duration-300"></video>
@@ -262,8 +241,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     <?php endif; ?>
                     <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none"></div>
                 </div>
-
-                <!-- Dados da Seção -->
                 <div class="p-5 flex-1 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
@@ -277,14 +254,12 @@ require_once __DIR__ . '/../includes/admin_header.php';
                             Atualizado <?= timeAgo($s['updated_at'] ?? date('Y-m-d H:i:s')) ?>
                         </p>
                     </div>
-
                     <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
                         <?php if (empty($s['deleted_at'])): ?>
                             <a href="<?= ADMIN_URL ?>/editor.php?id=<?= (int)$s['id'] ?>" class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">
                                 <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
                                 <span>Editar seção</span>
                             </a>
-
                             <div class="flex items-center gap-3">
                                 <a href="<?= SITE_URL ?>/index.php#<?= e($s['identifier']) ?>" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-slate-700 text-xs font-medium flex items-center gap-1">
                                     <span>Ver</span>
@@ -315,7 +290,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                                         <span>Restaurar</span>
                                     </button>
                                 </form>
-
                                 <form method="post" action="<?= ADMIN_URL ?>/content.php" onsubmit="return confirm('Excluir esta seção permanentemente? Esta ação NÃO pode ser desfeita!');" class="inline">
                                     <input type="hidden" name="csrf_token" value="<?= e(getCsrfToken()) ?>">
                                     <input type="hidden" name="action" value="force_delete">

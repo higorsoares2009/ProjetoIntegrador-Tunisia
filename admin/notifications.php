@@ -14,9 +14,6 @@ $pdo = getPDO();
 $successMsg = '';
 $errorMsg = '';
 
-/**
- * Marcar todas como lidas.
- */
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST'
     && ($_POST['action'] ?? '') === 'mark_all_read'
@@ -36,9 +33,6 @@ if (
     }
 }
 
-/**
- * Marcar notificação individual como lida.
- */
 if (isset($_GET['mark_id'])) {
     $markId = (int) $_GET['mark_id'];
 
@@ -53,7 +47,6 @@ if (isset($_GET['mark_id'])) {
         }
     }
 
-    // Evita repetir a ação ao atualizar a página.
     $redirectUrl = ADMIN_URL . '/notifications.php';
     $filter = $_GET['filter'] ?? 'all';
 
@@ -65,9 +58,6 @@ if (isset($_GET['mark_id'])) {
     exit;
 }
 
-/**
- * Carregar notificações.
- */
 $notificationsList = [];
 
 if ($pdo) {
@@ -91,10 +81,6 @@ if ($pdo) {
         $errorMsg = 'Não foi possível carregar as notificações.';
     }
 }
-
-/**
- * Estatísticas.
- */
 $totalCount = count($notificationsList);
 $unreadCount = 0;
 $readCount = 0;
@@ -106,10 +92,6 @@ foreach ($notificationsList as $notification) {
         $readCount++;
     }
 }
-
-/**
- * Filtro atual.
- */
 $filter = $_GET['filter'] ?? 'all';
 
 if (!in_array($filter, ['all', 'unread', 'read'], true)) {
@@ -744,7 +726,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
 <div class="notifications-page">
 
-    <!-- Cabeçalho -->
     <section class="notifications-hero">
         <div class="notifications-heading">
             <div>
@@ -767,7 +748,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
     </section>
 
-    <!-- Mensagens de retorno -->
     <?php if ($successMsg): ?>
         <div class="notifications-alert success" role="status">
             <i data-lucide="check-circle"></i>
@@ -782,7 +762,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
     <?php endif; ?>
 
-    <!-- Estatísticas -->
     <section class="notifications-stats" aria-label="Resumo das notificações">
 
         <div class="notification-stat">
@@ -826,7 +805,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
     </section>
 
-    <!-- Barra de filtros -->
     <div class="notifications-toolbar">
 
         <div>
@@ -905,7 +883,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
     </div>
 
-    <!-- Lista de notificações -->
     <section class="notifications-list" aria-label="Lista de notificações">
 
         <?php if (empty($filteredNotifications)): ?>
@@ -966,8 +943,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 ?>
 
                 <article class="notification-item <?= $isUnread ? 'is-unread' : '' ?>">
-
-                    <!-- Avatar -->
                     <div class="notification-avatar">
                         <?php if ($avatarUrl !== ''): ?>
                             <img
@@ -984,31 +959,26 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         <?php endif; ?>
                     </div>
 
-                    <!-- Conteúdo -->
                     <div class="notification-content">
 
                         <div class="notification-item-heading">
                             <h3 class="notification-item-title">
                                 <?= e($notif['title'] ?? 'Notificação') ?>
                             </h3>
-
                             <?php if ($isUnread): ?>
                                 <span class="notification-unread-badge">
                                     Nova
                                 </span>
                             <?php endif; ?>
                         </div>
-
                         <p class="notification-message">
                             <?= e($notif['message'] ?? '') ?>
                         </p>
-
                         <div class="notification-meta">
 
                             <span
                                 class="notification-meta-item"
-                                title="<?= e($fullDate) ?>"
-                            >
+                                title="<?= e($fullDate) ?>">
                                 <i data-lucide="clock-3"></i>
 
                                 <?php if ($createdTimestamp): ?>
@@ -1017,61 +987,46 @@ require_once __DIR__ . '/../includes/admin_header.php';
                                     Data indisponível
                                 <?php endif; ?>
                             </span>
-
                             <?php if (!empty($notif['user_id']) && $userName !== ''): ?>
                                 <span class="notification-meta-item">
                                     <i data-lucide="user-round"></i>
                                     <?= e($userName) ?>
                                 </span>
                             <?php endif; ?>
-
                             <?php if (!empty($notif['section_id'])): ?>
                                 <a
                                     href="<?= e(ADMIN_URL) ?>/editor.php?id=<?= (int) $notif['section_id'] ?>"
                                     class="notification-section-link"
-                                    title="<?= e($sectionTitle !== '' ? $sectionTitle : 'Editar seção vinculada') ?>"
-                                >
+                                    title="<?= e($sectionTitle !== '' ? $sectionTitle : 'Editar seção vinculada') ?>">
                                     <i data-lucide="file-pen-line"></i>
-
                                     <?= $sectionTitle !== ''
                                         ? e($sectionTitle)
                                         : 'Editar seção vinculada' ?>
-
                                     <i data-lucide="arrow-up-right"></i>
                                 </a>
                             <?php endif; ?>
-
                         </div>
                     </div>
-
-                    <!-- Ação individual -->
                     <?php if ($isUnread): ?>
                         <a
                             href="?mark_id=<?= (int) $notif['id'] ?>&amp;filter=<?= e($filter) ?>"
                             class="notification-read-action"
                             title="Marcar como lida"
-                            aria-label="Marcar notificação como lida"
-                        >
+                            aria-label="Marcar notificação como lida">
                             <i data-lucide="check"></i>
                         </a>
                     <?php else: ?>
                         <div
                             class="notification-read-action"
                             title="Notificação lida"
-                            aria-label="Notificação lida"
-                        >
+                            aria-label="Notificação lida">
                             <i data-lucide="check-check"></i>
                         </div>
                     <?php endif; ?>
-
                 </article>
-
-            <?php endforeach; ?>
-
-        <?php endif; ?>
-
+            <?php endforeach?>
+        <?php endif?>
     </section>
-
 </div>
 
 <?php require_once __DIR__ . '/../includes/admin_footer.php'; ?>

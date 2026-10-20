@@ -7,7 +7,6 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/Mailer.php';
 
-// Gera e valida token CSRF
 function getCsrfToken(): string {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -22,12 +21,10 @@ function verifyCsrfToken(?string $token): bool {
     return hash_equals($_SESSION['csrf_token'], $token);
 }
 
-// Escapa saída para prevenção de XSS
 function e(?string $string): string {
     return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-// Controle de Autenticação e Sessão
 function getCurrentUser(): ?array {
     return $_SESSION['user'] ?? null;
 }
@@ -51,7 +48,6 @@ function requireAuth(bool $adminOnly = false): void {
     }
 }
 
-// Registro de Auditoria no Banco
 function logAudit(string $action, string $details = '', ?int $userId = null): void {
     $pdo = getPDO();
     if (!$pdo) return;
@@ -59,11 +55,10 @@ function logAudit(string $action, string $details = '', ?int $userId = null): vo
         if ($userId === null && isLoggedIn()) {
             $userId = (int)$_SESSION['user']['id'];
         }
-        if ($userId === 0) $userId = null; // 0 = ação do sistema (agendador/cron)
+        if ($userId === 0) $userId = null; 
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $stmt = $pdo->prepare("INSERT INTO audit_logs (user_id, action, details, ip_address, created_at) VALUES (?, ?, ?, ?, NOW())");
         $stmt->execute([$userId, $action, $details, $ip]);
-        // Qualquer ação administrativa registrada pode alterar o site público.
         if (!in_array($action, ['login', 'logout', 'login bloqueado', 'login falhou', 'cadastro'], true)) {
             purgeSiteCache();
         }
@@ -72,7 +67,6 @@ function logAudit(string $action, string $details = '', ?int $userId = null): vo
     }
 }
 
-// Formatação amigável de datas relativas (ex: Há 12 min)
 function timeAgo(string $datetime): string {
     $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $datetime, new DateTimeZone('America/Sao_Paulo'));
     if (!$date) {
@@ -98,7 +92,6 @@ function timeAgo(string $datetime): string {
     return $date->format('d/m/Y');
 }
 
-// Cria Notificação no Sistema com verificação de aviso por email
 function createNotification(string $action, string $title, string $message, ?int $sectionId = null, ?int $userId = null): void {
     $pdo = getPDO();
     if (!$pdo) return;
@@ -106,11 +99,10 @@ function createNotification(string $action, string $title, string $message, ?int
         if ($userId === null && isLoggedIn()) {
             $userId = (int)$_SESSION['user']['id'];
         }
-        if ($userId === 0) $userId = null; // 0 = ação do sistema (agendador/cron)
+        if ($userId === 0) $userId = null; 
         $stmt = $pdo->prepare("INSERT INTO notifications (user_id, action, title, message, section_id, is_read, created_at) VALUES (?, ?, ?, ?, ?, 0, NOW())");
         $stmt->execute([$userId, $action, $title, $message, $sectionId]);
 
-        // Verifica configuração de aviso por e-mail em publicação
         if ($action === 'publicou') {
             $stmtSet = $pdo->query("SELECT setting_value FROM site_settings WHERE setting_key = 'notify_on_publish'");
             $notifyOnPublish = $stmtSet ? $stmtSet->fetchColumn() : '0';
@@ -127,7 +119,7 @@ function createNotification(string $action, string $title, string $message, ?int
     }
 }
 
-// Retorna contagem de notificações não lidas
+
 function getUnreadNotificationsCount(): int {
     $pdo = getPDO();
     if (!$pdo) return 0;
@@ -138,24 +130,23 @@ function getUnreadNotificationsCount(): int {
     }
 }
 
-// Registro de visualizações reais — barato e fora do caminho crítico da resposta.
+
 function recordPageView(): void {
     if (PHP_SAPI === 'cli') return;
 
     $uri = $_SERVER['REQUEST_URI'] ?? '';
-    // Ignora chamadas ao painel administrativo ou recursos estáticos
+
     if (strpos($uri, '/admin') !== false || preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg|mp4|webp|xml|txt)(\?.*)?$/i', $uri)) {
         return;
     }
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') return;
 
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    // Ignora bots e crawlers conhecidos
+
     if (preg_match('/bot|crawl|slurp|spider|mediapartners|lighthouse|headless/i', $ua)) {
         return;
     }
 
-    // Caminho rápido: o cookie evita qualquer acesso ao banco para visitantes recorrentes (15 min).
     if (isset($_COOKIE['pv_seen'])) return;
     if (!headers_sent()) {
         setcookie('pv_seen', '1', [
@@ -167,19 +158,16 @@ function recordPageView(): void {
     $ip = getClientIp();
     $ua = substr($ua, 0, 250);
 
-    // A gravação acontece depois que a resposta já foi enviada ao visitante.
     register_shutdown_function(function () use ($ip, $ua) {
         finishResponse();
         $pdo = getPDO();
         if (!$pdo) return;
         try {
-            // Visitantes sem cookie continuam limitados a 1 registro por IP a cada 15 minutos.
             $stmtCheck = $pdo->prepare("SELECT id FROM page_views WHERE ip_address = ? AND created_at > (NOW() - INTERVAL 15 MINUTE) LIMIT 1");
             $stmtCheck->execute([$ip]);
             if (!$stmtCheck->fetch()) {
                 $pdo->prepare("INSERT INTO page_views (ip_address, user_agent, created_at) VALUES (?, ?, NOW())")->execute([$ip, $ua]);
             }
-            // Manutenção ocasional (1 em 200 visitas): mantém as tabelas enxutas.
             if (random_int(1, 200) === 1) {
                 $pdo->exec("DELETE FROM page_views WHERE created_at < (NOW() - INTERVAL 180 DAY)");
                 $pdo->exec("DELETE FROM login_attempts WHERE attempted_at < (NOW() - INTERVAL 2 DAY)");
@@ -190,7 +178,6 @@ function recordPageView(): void {
     });
 }
 
-// Aplica regra de retenção do histórico de versões definida nas Configurações
 function applyHistoryRetention(): void {
     $pdo = getPDO();
     if (!$pdo) return;
@@ -206,7 +193,6 @@ function applyHistoryRetention(): void {
     }
 }
 
-// Retorna URL de avatar do usuário com fallback visual limpo
 function getUserAvatarUrl(?array $user): string {
     if (!empty($user['avatar'])) {
         return SITE_URL . '/' . ltrim($user['avatar'], '/');
@@ -214,12 +200,6 @@ function getUserAvatarUrl(?array $user): string {
     return '';
 }
 
-
-// ---------------------------------------------------------------------------
-// Segurança de login: limite de tentativas
-// ---------------------------------------------------------------------------
-
-/** IP do cliente. Só considera X-Forwarded-For se TRUST_PROXY=1 (atrás de proxy/CDN confiável). */
 function getClientIp(): string {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     if (envValue('TRUST_PROXY', '0') === '1' && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
@@ -231,7 +211,6 @@ function getClientIp(): string {
     return substr($ip, 0, 45);
 }
 
-/** Cria a tabela de tentativas em instalações antigas que ainda não a possuem. */
 function ensureLoginAttemptsTable(PDO $pdo): void {
     static $done = false;
     if ($done) return;
@@ -246,11 +225,7 @@ function ensureLoginAttemptsTable(PDO $pdo): void {
     $done = true;
 }
 
-/**
- * Minutos restantes de bloqueio (0 = liberado).
- * Bloqueia por IP (LOGIN_MAX_ATTEMPTS falhas na janela) e, contra ataques distribuídos,
- * por e-mail com limite 4x maior — assim um invasor não consegue trancar facilmente a conta de outra pessoa.
- */
+
 function loginLockoutMinutes(PDO $pdo, string $email, string $ip): int {
     try {
         ensureLoginAttemptsTable($pdo);
@@ -277,7 +252,7 @@ function loginLockoutMinutes(PDO $pdo, string $email, string $ip): int {
         return max(1, (int)ceil(($unlockTs - time()) / 60));
     } catch (Throwable $e) {
         error_log('Erro ao verificar bloqueio de login: ' . $e->getMessage());
-        return 0; // falha aberta apenas se o controle em si quebrar; o login continua protegido por senha
+        return 0; 
     }
 }
 
@@ -302,19 +277,14 @@ function clearLoginFailures(PDO $pdo, string $email, string $ip): void {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Cache da página pública (arquivo HTML regenerado quando o conteúdo muda)
-// ---------------------------------------------------------------------------
-
 function siteCacheTtl(): int {
-    return max(0, (int)envValue('CACHE_TTL', '600')); // segundos; 0 desativa
+    return max(0, (int)envValue('CACHE_TTL', '600'));
 }
 
 function siteCacheFile(): string {
     return CACHE_DIR . '/index.html';
 }
 
-/** Remove o HTML em cache; chamado automaticamente a cada ação administrativa auditada. */
 function purgeSiteCache(): void {
     $file = siteCacheFile();
     if (is_file($file)) {
@@ -322,7 +292,6 @@ function purgeSiteCache(): void {
     }
 }
 
-/** Grava o HTML em cache de forma atômica (arquivo temporário + rename). */
 function writeSiteCache(string $html): void {
     if (!is_dir(CACHE_DIR) && !@mkdir(CACHE_DIR, 0755, true) && !is_dir(CACHE_DIR)) {
         return;
@@ -334,11 +303,6 @@ function writeSiteCache(string $html): void {
     @unlink($tmp);
 }
 
-// ---------------------------------------------------------------------------
-// URL pública, imagens otimizadas (WebP) e miniaturas
-// ---------------------------------------------------------------------------
-
-/** URL absoluta do site (PUBLIC_URL no ambiente tem prioridade; senão, deduzida da requisição). */
 function siteBaseUrl(): string {
     $configured = trim((string)envValue('PUBLIC_URL', ''));
     if ($configured !== '') {
@@ -355,7 +319,6 @@ function isExternalUrl(string $path): bool {
     return (bool)preg_match('#^(https?:)?//#i', $path);
 }
 
-/** Retorna o caminho relativo do .webp equivalente se ele existir no disco (ou null). */
 function webpSibling(string $relativePath): ?string {
     $relativePath = ltrim($relativePath, '/');
     if ($relativePath === '' || strpos($relativePath, '..') !== false || isExternalUrl($relativePath)) return null;
@@ -364,10 +327,6 @@ function webpSibling(string $relativePath): ?string {
     return is_file(__DIR__ . '/../' . $webp) ? $webp : null;
 }
 
-/**
- * Gera <picture> com WebP quando houver versão otimizada; senão, <img> comum.
- * Opções: loading (lazy|eager), class, style, fetchpriority.
- */
 function pictureTag(string $path, string $alt, array $opts = []): string {
     $path = trim($path);
     if ($path === '') return '';
@@ -387,10 +346,6 @@ function pictureTag(string $path, string $alt, array $opts = []): string {
     return '<picture><source srcset="./' . e($webp) . '" type="image/webp">' . $img . '</picture>';
 }
 
-/**
- * Gera versões WebP (principal e miniatura) de uma imagem enviada. Requer a extensão GD com suporte a WebP.
- * Retorna os caminhos relativos criados (pode ser vazio se GD/WebP não estiver disponível).
- */
 function generateImageVariants(string $absPath, string $mime): array {
     $made = [];
     if (!function_exists('imagewebp') || !in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
@@ -399,7 +354,7 @@ function generateImageVariants(string $absPath, string $mime): array {
     $loader = ['image/jpeg' => 'imagecreatefromjpeg', 'image/png' => 'imagecreatefrompng', 'image/webp' => 'imagecreatefromwebp'][$mime];
     if (!function_exists($loader)) return $made;
     $info = @getimagesize($absPath);
-    if (!$info || $info[0] < 1 || $info[1] < 1 || ($info[0] * $info[1]) > 40000000) return $made; // evita estourar memória
+    if (!$info || $info[0] < 1 || $info[1] < 1 || ($info[0] * $info[1]) > 40000000) return $made; 
     $src = @$loader($absPath);
     if (!$src) return $made;
     imagepalettetotruecolor($src);
@@ -415,7 +370,7 @@ function generateImageVariants(string $absPath, string $mime): array {
             if ($scaled) { $img = $scaled; }
         }
         $target = $base . $suffix;
-        if ($mime === 'image/webp' && $suffix === '.webp') { // já é WebP: não recria o mesmo arquivo
+        if ($mime === 'image/webp' && $suffix === '.webp') { 
             if ($img !== $src) imagedestroy($img);
             continue;
         }
@@ -428,16 +383,11 @@ function generateImageVariants(string $absPath, string $mime): array {
     return $made;
 }
 
-/** Versão do arquivo estático (data de modificação) para renovar o cache do navegador. */
 function assetVersion(string $relativePath): string {
     $file = __DIR__ . '/../' . ltrim($relativePath, '/');
     return is_file($file) ? (string)filemtime($file) : '1';
 }
 
-/**
- * Entrega a resposta ao visitante antes de tarefas pesadas executadas no encerramento do script.
- * Com PHP-FPM usa fastcgi_finish_request(); nos demais (ex.: XAMPP/mod_php) descarrega os buffers.
- */
 function finishResponse(): void {
     if (PHP_SAPI === 'cli') return;
     if (function_exists('fastcgi_finish_request')) {
@@ -448,10 +398,6 @@ function finishResponse(): void {
     @flush();
 }
 
-/**
- * Título com destaque: escapa todo o HTML, exceto <span class="highlight">…</span>
- * (usado nos títulos padrão, ex.: "Descobertas e <span class="highlight">Pesquisas</span>").
- */
 function titleWithHighlight(?string $title): string {
     $escaped = e((string)$title);
     return (string)preg_replace(

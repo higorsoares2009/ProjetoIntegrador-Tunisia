@@ -38,7 +38,6 @@ if ($reset && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             $pdo->prepare('UPDATE users SET password = ? WHERE id = ?')
                 ->execute([password_hash($password, PASSWORD_DEFAULT), (int)$reset['user_id']]);
-            // Invalida este e qualquer outro link pendente da conta.
             $pdo->prepare('UPDATE password_resets SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL')
                 ->execute([(int)$reset['user_id']]);
             $pdo->commit();

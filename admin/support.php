@@ -9,7 +9,6 @@ require_once __DIR__ . '/../includes/functions.php';
 requireAuth();
 
 $pdo = getPDO();
-// Mensagem de sucesso guardada na sessão (padrão "post → redirect → get": recarregar a página não reenvia o chamado)
 $successMsg = (string)($_SESSION['flash_support_ok'] ?? '');
 unset($_SESSION['flash_support_ok']);
 $errorMsg = '';
@@ -21,8 +20,6 @@ function supportRedirect(string $okMessage): void {
     header('Location: ' . ADMIN_URL . '/support.php#chamados');
     exit;
 }
-
-// Administradores podem atualizar o status de qualquer chamado.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_ticket_status') {
     $user = getCurrentUser();
     $ticketId = (int)($_POST['ticket_id'] ?? 0);
@@ -45,8 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         }
     }
 }
-
-// Resposta a um chamado existente
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reply_ticket') {
     $user = getCurrentUser();
     $ticketId = (int)($_POST['ticket_id'] ?? 0);
@@ -67,8 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reply
             } else {
                 $stmtIns = $pdo->prepare('INSERT INTO support_messages (ticket_id, user_id, message, created_at) VALUES (?, ?, ?, NOW())');
                 $stmtIns->execute([$ticketId, (int)($user['id'] ?? 0), $replyMsg]);
-
-                // Se quem respondeu é admin, notifica o solicitante (ou atualiza o status do chamado)
                 $pdo->prepare('UPDATE support_tickets SET updated_at = NOW() WHERE id = ?')->execute([$ticketId]);
                 logAudit('respondeu chamado de suporte', "Chamado #{$ticketId}", (int)($user['id'] ?? 0));
 
@@ -84,8 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reply
         }
     }
 }
-
-// Envio de chamado de suporte
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'new_ticket') {
     $formSubject = mb_substr(trim($_POST['subject'] ?? ''), 0, 150);
     $formMessage = mb_substr(trim($_POST['message'] ?? ''), 0, 5000);
@@ -96,8 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'new_t
         $errorMsg = 'Preencha o assunto e a mensagem do chamado.';
     } else {
         $attachmentPath = null;
-
-        // Anexo opcional: só formatos seguros (imagem, PDF ou texto), até 5 MB.
         if (!empty($_FILES['attachment']['name'])) {
             $file = $_FILES['attachment'];
             if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -140,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'new_t
     }
 }
 
-// Lista de chamados enviados pelo usuário
 $ticketsList = [];
 if ($pdo) {
     try {
@@ -154,7 +142,6 @@ if ($pdo) {
         }
         $ticketsList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Carrega as mensagens de cada chamado
         if (!empty($ticketsList)) {
             $tIds = array_column($ticketsList, 'id');
             $inSql = implode(',', array_fill(0, count($tIds), '?'));
@@ -206,7 +193,6 @@ $faqs = [
 $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
 ?>
 
-<!-- Header da Página -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 sm:mb-8">
     <div class="min-w-0">
         <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Central de Suporte e Ajuda</h1>
@@ -241,10 +227,7 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-    <!-- Coluna esquerda: guia rápido + FAQ -->
     <div class="lg:col-span-7 space-y-6 min-w-0">
-
-        <!-- Guia rápido -->
         <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -267,8 +250,6 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
                 </a>
             </div>
         </div>
-
-        <!-- FAQ -->
         <div class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <h2 class="text-base font-bold text-slate-900">Perguntas frequentes</h2>
@@ -302,10 +283,7 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
         </div>
     </div>
 
-    <!-- Coluna direita: chamado + lista -->
     <div class="lg:col-span-5 space-y-6 min-w-0">
-
-        <!-- Novo chamado -->
         <div id="chamado" class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm scroll-mt-4">
             <h2 class="text-base font-bold text-slate-900 mb-1">Falar com o suporte</h2>
             <p class="text-xs text-slate-500 mb-5">Para dúvidas avançadas ou problemas técnicos. Quanto mais detalhes, mais rápido conseguimos ajudar.</p>
@@ -339,7 +317,6 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
             </form>
         </div>
 
-        <!-- Lista de chamados -->
         <div id="chamados" class="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm scroll-mt-4">
             <div class="flex items-center justify-between gap-3 mb-4">
                 <h3 class="text-sm font-bold text-slate-900"><?= $isAdminUser ? 'Chamados de suporte' : 'Meus chamados' ?></h3>
@@ -387,8 +364,6 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
                                         <?php endforeach; ?>
                                     </div>
                                 <?php endif; ?>
-
-                                <!-- Formulário de Resposta rápida -->
                                 <form method="POST" class="pt-2 border-t border-slate-200/60 space-y-2">
                                     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                                     <input type="hidden" name="action" value="reply_ticket">
@@ -425,7 +400,6 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
 
 <script>
 (function () {
-    // ---- acordeão ----
     function setOpen(item, open) {
         const btn = item.querySelector('.faq-btn'), ans = item.querySelector('.faq-answer'), chev = item.querySelector('.faq-chevron');
         ans.classList.toggle('hidden', !open);
@@ -435,8 +409,6 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
     document.querySelectorAll('.faq-item').forEach(item => {
         item.querySelector('.faq-btn').addEventListener('click', () => setOpen(item, item.querySelector('.faq-answer').classList.contains('hidden')));
     });
-
-    // ---- filtro (ignora acentos e maiúsculas) ----
     const fold = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const input = document.getElementById('faqSearchInput');
     const items = Array.from(document.querySelectorAll('.faq-item'));
@@ -455,12 +427,9 @@ $attachmentUrl = fn($path) => SITE_URL . '/' . ltrim((string)$path, '/');
         countEl.textContent = terms.length ? shown + (shown === 1 ? ' resultado' : ' resultados') : items.length + ' perguntas';
         emptyEl.classList.toggle('hidden', shown !== 0);
     }
-    // abre as respostas automaticamente quando restam poucas correspondências
     function shownCandidates(terms) { return items.filter(it => terms.every(t => fold(it.textContent).includes(t))).length; }
 
     input.addEventListener('input', filter);
-
-    // vindo da busca global: support.php?q=termo
     const q = new URLSearchParams(location.search).get('q');
     if (q) { input.value = q; filter(); const l = document.getElementById('faqList'); if (l) l.scrollIntoView({ block: 'center' }); }
 })();

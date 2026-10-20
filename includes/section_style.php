@@ -1,14 +1,9 @@
 <?php
 /**
  * Aparência e layout por seção (alinhamento, largura, espaçamento, fundo, fontes, tamanhos,
- * cores, cards e animação).
- *
- * Segurança: o painel só aceita valores de listas fixas (ou cores #RRGGBB). Nenhum CSS digitado
- * pelo usuário chega ao site, então não há como injetar estilos/scripts por este recurso.
- * Os dados ficam em sections.style_data (JSON) e, nos rascunhos, em draft_data['style'].
+
  */
 
-/** Fontes disponíveis. 'google' = família do Google Fonts (carregada só se alguma seção a usar). */
 const SX_FONTS = [
     'sans'        => ['label' => 'Sans padrão do site',   'stack' => 'inherit',                                           'google' => null],
     'system'    => ['label' => 'Sistema (rápida)',      'stack' => "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", 'google' => null],
@@ -26,7 +21,6 @@ const SX_FONTS = [
     'dancing'   => ['label' => 'Dancing Script (manuscrita)', 'stack' => "'Dancing Script', cursive", 'google' => 'Dancing+Script:wght@400;600;700'],
 ];
 
-/** Opções de lista fixa: campo => [valor => rótulo]. Primeiro item vazio = "padrão do site". */
 function sectionStyleChoices(): array {
     return [
         'text_align'      => ['' => 'Padrão', 'left' => 'Esquerda', 'center' => 'Centro', 'right' => 'Direita'],
@@ -71,14 +65,12 @@ function sectionStyleDefaults(): array {
     return $d;
 }
 
-/** Normaliza #abc / #aabbcc para #aabbcc minúsculo; qualquer outra coisa vira ''. */
 function sxNormalizeColor($value): string {
     $v = strtolower(trim((string)$value));
     if (preg_match('/^#([0-9a-f])([0-9a-f])([0-9a-f])$/', $v,$m)) return '#' . $m[1] .$m[1] . $m[2] .$m[2] . $m[3] .$m[3];
     return preg_match('/^#[0-9a-f]{6}$/', $v) ?$v : '';
 }
 
-/** Valida a entrada (POST/JSON) e devolve só valores permitidos. */
 function sxValidImagePath(string $path): bool {
     return $path !== '' && strpos($path, '..') === false
         && (bool)preg_match('#^(uploads/media|assets/img)/[A-Za-z0-9_.\-]+\.(png|jpe?g|webp|gif)$#i', $path);
@@ -94,14 +86,12 @@ function sanitizeSectionStyle($raw): array {$out = sectionStyleDefaults();
         $v = isset($raw[$field]) && is_scalar($raw[$field]) ? (string)$raw[$field] : '';$out[$field] = ($v !== '' && isset(SX_FONTS[$v])) ?$v : '';
     }
     $out['hide_badge'] = !empty($raw['hide_badge']) ? '1' : '';
-    $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';       // só tem efeito no banner (hero)
-    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : '';   // idem: remove o escurecimento padrão do banner
+    $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';      
+    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : '';  
 
-    // Imagem de fundo: só arquivos de uploads/media ou assets/img (nunca URL externa nem caminho livre).
     $img = isset($raw['bg_image']) && is_scalar($raw['bg_image']) ? trim((string)$raw['bg_image']) : '';$out['bg_image'] = sxValidImagePath($img) ?$img : '';
     $overlay = (isset($raw['bg_overlay']) && is_numeric($raw['bg_overlay'])) ? (int)$raw['bg_overlay'] : -1;
     $out['bg_overlay'] = ($out['bg_image'] !== '' && $overlay >= 0 &&$overlay <= 80) ? (string)((int)(round($overlay / 5) * 5)) : '';$out['bg_fixed'] = ($out['bg_image'] !== '' && !empty($raw['bg_fixed'])) ? '1' : '';
-    // Degradê só faz sentido com cor inicial; sem ela, volta ao padrão do site.
     if ($out['bg_mode'] !== '' && $out['bg_color'] === '')$out['bg_mode'] = '';
     if ($out['bg_mode'] === '') {$out['bg_color'] = ''; $out['bg_color2'] = '';$out['bg_direction'] = 'down'; }
     if ($out['bg_mode'] === 'solid') {$out['bg_color2'] = ''; }
@@ -117,7 +107,6 @@ function sectionStyleIsEmpty(array $style): bool {
     return $style === sectionStyleDefaults();
 }
 
-/** Classes CSS a acrescentar ao elemento <section>. Retorna '' se nada foi personalizado. */
 function sectionStyleClasses(array $s): string {
     if (sectionStyleIsEmpty($s)) return '';$c = ['sx'];
     foreach ([
@@ -147,10 +136,6 @@ function sectionStyleClasses(array $s): string {
     return implode(' ', $c);
 }
 
-/**
- * Valor CSS completo do fundo (camadas): [escurecimento] + imagem + cor/degradê.
- * Tudo vem de campos já validados (cores #RRGGBB, caminho de arquivo restrito).
- */
 function sectionStyleBgValue(array $s): string {$layers = [];
     if (!empty($s['bg_image']) && sxValidImagePath($s['bg_image'])) {
         $path =$s['bg_image'];
@@ -158,12 +143,11 @@ function sectionStyleBgValue(array $s): string {$layers = [];
         $alpha = (isset($s['bg_overlay']) && $s['bg_overlay'] === '' ? 0 : (int)($s['bg_overlay'] ?? 0)) / 100;
         if ($alpha > 0) {$a = number_format($alpha, 2, '.', '');$layers[] = "linear-gradient(rgba(0,0,0,{$a}),rgba(0,0,0,{$a}))";
         }
-        // Caminho a partir da raiz do site: URL relativa em variável CSS seria resolvida contra o arquivo .css.
         $base = defined('SITE_URL') ? str_replace(["'", '"', '(', ')', ' ', '\\'], '', (string)SITE_URL) : '';
         $layers[] = "url('{$base}/{$path}')";
     }
     if (isset($s['bg_mode']) && $s['bg_mode'] === 'solid' && !empty($s['bg_color'])) {
-        $layers[] =$s['bg_color']; // cor sólida precisa ser a última camada
+        $layers[] =$s['bg_color']; 
     } elseif (isset($s['bg_mode']) && $s['bg_mode'] === 'gradient' && !empty($s['bg_color'])) {
         $dir = ['down' => 'to bottom', 'right' => 'to right', 'diag' => 'to bottom right', 'up' => 'to top'][$s['bg_direction'] ?? 'down'] ?? 'to bottom';
         $layers[] = 'linear-gradient(' .$dir . ',' . $s['bg_color'] . ',' . (!empty($s['bg_color2']) ? $s['bg_color2'] :$s['bg_color']) . ')';
@@ -171,7 +155,6 @@ function sectionStyleBgValue(array $s): string {$layers = [];
     return implode(',', $layers);
 }
 
-/** Variáveis CSS inline (apenas valores já validados). */
 function sectionStyleInline(array $s): string {$v = [];
     $bg = sectionStyleBgValue($s);
     if ($bg !== '') $v[] = '--sx-bg:' .$bg;
@@ -186,10 +169,6 @@ function sectionStyleInline(array $s): string {$v = [];
     return implode(';', $v);
 }
 
-/**
- * Atributos HTML prontos: ` data-sx-anim="..." style="..."` (a classe é montada à parte).
- * Escapa tudo, mesmo vindo de lista validada (defesa em profundidade).
- */
 function sectionStyleAttrs(array $s): string {$out = '';
     $inline = sectionStyleInline($s);
     if ($inline !== '') $out .= ' style="' . htmlspecialchars($inline, ENT_QUOTES, 'UTF-8') . '"';
@@ -197,7 +176,6 @@ function sectionStyleAttrs(array $s): string {$out = '';
     return $out;
 }
 
-/** URL única do Google Fonts para as fontes usadas (ou '' se nenhuma). */
 function sectionStyleFontsUrl(array $styles): string {$families = [];
     foreach ($styles as$s) {
         foreach (SX_FONT_FIELDS as $field) {$key = $s[$field] ?? '';

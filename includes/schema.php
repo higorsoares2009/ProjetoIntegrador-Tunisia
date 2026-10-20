@@ -1,7 +1,6 @@
 <?php
 /**
  * Migrações leves do banco para instalações que já existiam antes da Fase 2.
- * O resultado é memorizado em cache/schema-*.ok (apague o arquivo para forçar nova verificação).
  */
 require_once __DIR__ . '/../config/database.php';
 

@@ -1,10 +1,6 @@
 <?php
 /**
  * API: Busca global do painel
- * GET ?q=termo  →  { success, query, groups: [ { key, label, items: [ { title, subtitle, url, icon } ] } ] }
- *
- * Procura em: páginas do painel (e tópicos de ajuda), seções, itens internos das seções,
- * biblioteca de mídia, histórico de versões e (só administradores) equipe.
  */
 header('Content-Type: application/json; charset=UTF-8');
 require_once __DIR__ . '/../../includes/functions.php';
@@ -18,7 +14,6 @@ if (!isLoggedIn()) {
 $q = trim((string)($_GET['q'] ?? ''));
 if (mb_strlen($q) > 80) $q = mb_substr($q, 0, 80);
 
-/** Remove acentos e põe em minúsculas, para "configuracao" achar "Configurações". */
 function searchNormalize(string $s): string {
     $s = mb_strtolower($s, 'UTF-8');
     $map = ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','ä'=>'a','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e','í'=>'i','ì'=>'i','î'=>'i','ï'=>'i',
@@ -26,14 +21,13 @@ function searchNormalize(string $s): string {
     return strtr($s, $map);
 }
 
-/** Pontua um texto: 3 = começa com o termo, 2 = palavra começa com o termo, 1 = contém, 0 = não achou. */
 function searchScore(string $haystack, array $terms): int {
     $h = searchNormalize($haystack);
     $total = 0;
     foreach ($terms as $t) {
         if ($t === '') continue;
         $pos = mb_strpos($h, $t);
-        if ($pos === false) return 0;               // todos os termos precisam aparecer
+        if ($pos === false) return 0;               
         if ($pos === 0) $total += 3;
         elseif (mb_substr($h, $pos - 1, 1) === ' ') $total += 2;
         else $total += 1;
@@ -47,7 +41,6 @@ function likeEscape(string $s): string {
 
 $groups = [];
 
-// ---------------------------------------------------------------- Sem termo: atalhos
 $pages = [
     ['Dashboard',            'Visão geral, visualizações e atividade recente',           '/dashboard.php',              'layout-grid', 'inicio painel visao geral estatisticas visualizacoes'],
     ['Conteúdo do Site',     'Lista de seções, reordenar e criar nova seção',            '/content.php',                'file-text',   'secoes paginas textos editar reordenar publicar rascunho nova secao'],
@@ -79,7 +72,6 @@ if ($q === '') {
 
 $terms = array_values(array_filter(preg_split('/\s+/u', searchNormalize($q))));
 
-// ---------------------------------------------------------------- Páginas e ajuda
 $scored = [];
 foreach ($pages as $p) {
     $s = max(searchScore($p[0], $terms) * 3, searchScore($p[0] . ' ' . $p[1] . ' ' . $p[4], $terms));
@@ -93,8 +85,6 @@ if ($scored) {
 $pdo = getPDO();
 if ($pdo) {
     $like = likeEscape($q);
-
-    // ------------------------------------------------------------ Seções
     try {
         $st = $pdo->prepare("SELECT id, identifier, title, subtitle, status FROM sections
                              WHERE title LIKE :q OR identifier LIKE :q OR subtitle LIKE :q OR description LIKE :q OR badge LIKE :q
@@ -113,7 +103,6 @@ if ($pdo) {
         if ($items) $groups[] = ['key' => 'sections', 'label' => 'Seções', 'items' => $items];
     } catch (Throwable $e) { error_log('search sections: ' . $e->getMessage()); }
 
-    // ------------------------------------------------------------ Itens internos (cards, etapas, marcadores…)
     try {
         $st = $pdo->prepare("SELECT i.id, i.section_id, i.title, i.subtitle, i.description, s.title AS section_title
                              FROM section_items i LEFT JOIN sections s ON s.id = i.section_id
@@ -134,7 +123,6 @@ if ($pdo) {
         if ($items) $groups[] = ['key' => 'items', 'label' => 'Conteúdo dentro das seções', 'items' => $items];
     } catch (Throwable $e) { error_log('search items: ' . $e->getMessage()); }
 
-    // ------------------------------------------------------------ Mídia
     try {
         $st = $pdo->prepare("SELECT id, filename, original_name, filepath, file_type FROM media
                              WHERE filename LIKE :q OR original_name LIKE :q ORDER BY created_at DESC LIMIT 5");
@@ -153,7 +141,6 @@ if ($pdo) {
         if ($items) $groups[] = ['key' => 'media', 'label' => 'Mídia', 'items' => $items];
     } catch (Throwable $e) { error_log('search media: ' . $e->getMessage()); }
 
-    // ------------------------------------------------------------ Histórico
     try {
         $st = $pdo->prepare("SELECT id, title, user_name, action_type, note, created_at FROM versions
                              WHERE title LIKE :q OR user_name LIKE :q OR note LIKE :q ORDER BY created_at DESC LIMIT 4");
@@ -171,7 +158,6 @@ if ($pdo) {
         if ($items) $groups[] = ['key' => 'history', 'label' => 'Histórico de versões', 'items' => $items];
     } catch (Throwable $e) { error_log('search versions: ' . $e->getMessage()); }
 
-    // ------------------------------------------------------------ Equipe (somente administradores)
     if (isAdmin()) {
         try {
             $st = $pdo->prepare("SELECT id, name, email, role FROM users WHERE name LIKE :q OR email LIKE :q ORDER BY name ASC LIMIT 4");

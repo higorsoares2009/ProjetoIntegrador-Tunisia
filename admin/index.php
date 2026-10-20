@@ -12,8 +12,6 @@ if (!in_array($activeTab, ['login', 'register'], true)) {
 }
 
 $error = '';
-// Credenciais de teste pré-preenchidas SOMENTE em acesso local (localhost/127.0.0.1/::1)
-// ou se LOGIN_PREFILL=1 no .env. Em produção (domínio real) o formulário vem vazio.
 $hostName = strtolower(preg_replace('/:\d+$/', '', (string)($_SERVER['HTTP_HOST'] ?? '')));
 $loginPrefill = in_array($hostName, ['localhost', '127.0.0.1', '[::1]'], true) || envValue('LOGIN_PREFILL', '0') === '1';
 $prefillEmail = $loginPrefill ? 'adm@adm.com' : '';
@@ -36,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($email) || empty($password)) {
             $error = 'Preencha todos os campos.';
         } elseif (!$pdo) {
-            // Nunca autentica com credenciais fixas quando o banco está indisponível.
             $error = 'Banco de dados não conectado. Ative o MySQL e tente novamente.';
         } elseif (($waitMinutes = loginLockoutMinutes($pdo, $email, $clientIp)) > 0) {
             $error = 'Muitas tentativas de acesso. Aguarde ' . $waitMinutes . ' minuto' . ($waitMinutes === 1 ? '' : 's') . ' e tente novamente.';
@@ -46,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
-            // Executa sempre um password_verify para não revelar, pelo tempo de resposta, se o e-mail existe.
             $hashToCheck = $user['password'] ?? '$2y$12$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234';
             $passwordOk = password_verify($password, $hashToCheck) && $user;
 
@@ -63,7 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'role' => $user['role'],
                         'avatar' => $user['avatar'] ?? null
                     ];
-                    // Remove cookie legado que guardava o e-mail em texto puro.
                     if (isset($_COOKIE['cms_remember_email'])) {
                         setcookie('cms_remember_email', '', time() - 3600, '/');
                     }
@@ -96,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Você precisa concordar com os Termos de Uso e Política de Privacidade.';
         } else {
             if ($pdo) {
-                // Verifica duplicidade de email
                 $stmtCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
                 $stmtCheck->execute([$email]);
                 if ($stmtCheck->fetch()) {
@@ -266,11 +260,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="auth-container">
     
-    <!-- Painel Esquerdo Hero Image (Fiel às fotos do mockup) -->
     <div class="auth-hero-panel">
-        <div></div> <!-- Espaçador topo -->
-
-        <!-- Conteúdo do Topo / Meio -->
+        <div></div> 
         <div class="my-auto" style="max-width: 480px;">
             <span style="color: #fde68a; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; display: inline-block; margin-bottom: 1rem;">
                 Painel de conteúdo
@@ -282,8 +273,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Gerencie cada detalhe da experiência digital do Projeto Tunísia.
             </p>
         </div>
-
-        <!-- Rodapé do lado esquerdo -->
         <div style="padding-top: 2rem;">
             <span style="font-size: 0.75rem; font-weight: 600; color: #cbd5e1; letter-spacing: 0.05em;">
                 2026 projeto Tunísia
@@ -291,11 +280,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <!-- Painel Direito Formulário (Entrar / Criar conta) -->
     <div class="auth-form-panel">
         <div class="w-full max-w-[420px]">
-
-            <!-- Alternador de Abas (Entrar / Criar conta) -->
             <div class="flex justify-center mb-8">
                 <div class="auth-card-tabs flex items-center p-1 bg-slate-200/80 rounded-2xl w-full max-w-[280px]">
                     <button type="button" id="tabBtnLogin" onclick="switchTab('login')" class="auth-tab-btn flex-1 py-2 text-center <?= $activeTab === 'login' ? 'active' : '' ?>">
@@ -306,8 +292,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </button>
                 </div>
             </div>
-
-            <!-- Alertas de Erro ou Sucesso -->
             <?php if (!empty($error)): ?>
                 <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-3">
                     <i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-red-500 mt-0.5"></i>
@@ -322,9 +306,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <!-- ============================================== -->
-            <!-- ABA 1: ENTRAR (BEM-VINDO DE VOLTA)            -->
-            <!-- ============================================== -->
             <div id="sectionLogin" class="<?= $activeTab === 'login' ? 'block' : 'hidden' ?>">
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Bem-vindo de volta</h2>
@@ -371,9 +352,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
             </div>
 
-            <!-- ============================================== -->
-            <!-- ABA 2: CRIAR CONTA (CRIE SUA CONTA)           -->
-            <!-- ============================================== -->
             <div id="sectionRegister" class="<?= $activeTab === 'register' ? 'block' : 'hidden' ?>">
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Crie sua conta</h2>
@@ -441,7 +419,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
             </div>
 
-            <!-- Link para voltar ao site público -->
             <div class="mt-8 text-center border-t border-slate-200/60 pt-5">
                 <a href="<?= SITE_URL ?>/index.php" class="text-xs text-slate-500 hover:text-slate-800 transition inline-flex items-center gap-1.5">
                     <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar ao site público
