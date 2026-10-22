@@ -43,7 +43,7 @@ $currentUserId = (int)($_SESSION['user']['id'] ?? 0);
 if ($pdo && $section && !empty($section['id'])) {
     if (!empty($section['locked_by']) && (int)$section['locked_by'] !== $currentUserId && !empty($section['locked_at'])) {
         $lockAge = time() - strtotime($section['locked_at']);
-        if ($lockAge < 180) { 
+        if ($lockAge < 180) { // menos de 3 minutos
             $isLockedByOther = true;
             $stmtLockUser = $pdo->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
             $stmtLockUser->execute([$section['locked_by']]);
@@ -54,6 +54,7 @@ if ($pdo && $section && !empty($section['id'])) {
         $pdo->prepare("UPDATE sections SET locked_by = ?, locked_at = NOW() WHERE id = ?")->execute([$currentUserId, $sectionId]);
     }
 }
+
 if (!$section) {
     $section = [
         'id' => 0,
@@ -357,7 +358,10 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
 <style>
 .si-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.editor-guide{padding:14px 16px;border:1px solid #e0e7ff;border-radius:16px;background:linear-gradient(135deg,#f8faff,#f5f3ff);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.editor-guide-copy{display:flex;gap:10px;align-items:flex-start}.editor-guide-icon{width:30px;height:30px;border-radius:10px;background:#4f46e5;color:#fff;display:grid;place-items:center;font-size:14px;flex:none}.editor-guide b{display:block;font-size:12px;color:#312e81}.editor-guide p{margin:2px 0 0;font-size:11px;line-height:1.45;color:#64748b}.editor-steps{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.editor-step{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#fff;border:1px solid #e0e7ff;color:#475569;font-size:10.5px;font-weight:700;text-decoration:none}.editor-step i{font-style:normal;display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#e0e7ff;color:#4338ca;font-size:9px}.editor-step:hover{border-color:#a5b4fc;color:#4338ca}
 .si-head-actions{display:flex;gap:8px;flex-shrink:0}
+.si-head-copy{max-width:560px}.si-head-copy p{line-height:1.5}
+.si-status{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:10px}.si-status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10.5px;font-weight:700}.si-status-pill strong{color:#334155}.si-status-dot{width:6px;height:6px;border-radius:50%;background:#6366f1}.si-status-dot.ready{background:#10b981}.si-status-dot.warn{background:#f59e0b}
 .si-btn-primary,.si-btn-ghost{font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
 .si-btn-primary{background:#4f46e5;color:#fff}
 .si-btn-primary:hover{background:#4338ca}
@@ -404,6 +408,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
 .si-body{padding:4px 16px 16px;border-top:1px solid #f1f5f9;margin:0 0 0;display:none}
 .is-open .si-body{display:block}
+.si-editor-note{display:flex;align-items:center;gap:7px;margin-top:13px;padding:8px 10px;border-radius:9px;background:#f8fafc;color:#64748b;font-size:11px}.si-editor-note b{color:#475569}
+.si-field-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:3px}.si-counter{font-size:10.5px;color:#94a3b8;font-variant-numeric:tabular-nums}.si-counter.is-long{color:#b45309}.si-required{color:#e11d48;font-size:11px}
+.si-complete{font-size:10px;font-weight:700;color:#b45309;background:#fffbeb;border:1px solid #fde68a;padding:3px 7px;border-radius:999px;white-space:nowrap}.si-complete.ready{color:#047857;background:#ecfdf5;border-color:#a7f3d0}
 .si-row-head,.si-summary,.si-body,.si-grid,.si-field{box-sizing:border-box}
 .si-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
 .si-field{display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -431,6 +438,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
   .is-open .si-tools{display:flex}
   .si-head-actions{width:100%}
   .si-head-actions button{flex:1}
+  .editor-guide{align-items:flex-start}.editor-steps{width:100%}
 }
 </style>
 
@@ -448,9 +456,14 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
         <?php endif; ?>
 
-        <div>
-            <h2 class="text-base font-bold text-slate-900">Conteúdo Principal</h2>
-            <p class="text-xs text-slate-400 mt-0.5">Textos e mídias exibidos na seção.</p>
+        <div class="editor-guide" aria-label="Como editar esta seção">
+            <div class="editor-guide-copy"><span class="editor-guide-icon">✦</span><div><b>Edite em quatro etapas simples</b><p>As alterações aparecem no preview ao lado e só chegam ao site quando você publicar.</p></div></div>
+            <nav class="editor-steps" aria-label="Ir para uma etapa"><a class="editor-step" href="#mainContentFields"><i>1</i>Conteúdo</a><a class="editor-step" href="#sectionItemsEditor"><i>2</i>Itens</a><a class="editor-step" href="#sxPanel"><i>3</i>Aparência</a><a class="editor-step" href="#editorActions"><i>4</i>Salvar</a></nav>
+        </div>
+
+        <div id="mainContentFields">
+            <h2 class="text-base font-bold text-slate-900">1. Conteúdo principal</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Defina o título, textos, chamadas e a visibilidade da seção.</p>
         </div>
 
         <?php if ($isNewSection): ?>
@@ -532,9 +545,10 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
         <div class="pt-6 border-t border-slate-100" id="sectionItemsEditor">
             <div class="si-head">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Conteúdo interno da seção</h2>
-                    <p class="text-xs text-slate-500 mt-1">Cards, etapas, listas e destaques exibidos dentro desta seção. Clique em um item para editar.</p>
+                <div class="si-head-copy">
+                    <h2 class="text-base font-bold text-slate-900">2. Conteúdo interno da seção</h2>
+                    <p class="text-xs text-slate-500 mt-1">Cards, etapas, listas e destaques exibidos dentro desta seção. Clique em um item para editar e use os controles à direita para organizar a sequência.</p>
+                    <div class="si-status" id="siStatus" aria-live="polite"></div>
                 </div>
                 <div class="si-head-actions">
                     <button type="button" id="siToggleAll" class="si-btn-ghost">Expandir todos</button>
@@ -617,7 +631,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     error_log('Erro ao listar mídia para o fundo: ' . $e->getMessage()); 
                 }
             }
-            $sxTabs = ['layout' => ['📐', 'Layout'], 'fundo' => ['🖼️', 'Fundo'], 'texto' => ['🔤', 'Texto'], 'cores' => ['🎨', 'Cores'], 'cards' => ['🃏', 'Cards e botões'], 'efeitos' => ['✨', 'Efeitos']];
+            $sxTabs = ['layout' => ['📐', 'Layout'], 'midia' => ['🖼️', 'Imagem'], 'fundo' => ['🖼️', 'Fundo'], 'texto' => ['🔤', 'Texto'], 'cores' => ['🎨', 'Cores'], 'cards' => ['🃏', 'Cards e botões'], 'efeitos' => ['✨', 'Efeitos']];
             $sxPresets = [
                 'clean' => ['Claro elegante', 'linear-gradient(135deg,#ffffff,#e2e8f0)'], 'dark' => ['Escuro', 'linear-gradient(135deg,#0b1020,#1e293b)'],
                 'gradient' => ['Degradê', 'linear-gradient(135deg,#4f46e5,#9333ea)'], 'soft' => ['Suave', 'linear-gradient(135deg,#f0f9ff,#e0e7ff)'],
@@ -626,14 +640,14 @@ require_once __DIR__ . '/../includes/admin_header.php';
             ];
         ?>
         <style>
-            .sxp{border:1px solid #e2e8f0;border-radius:1.25rem;background:#fff;overflow:hidden;box-shadow:0 10px 30px -12px rgba(79,70,229,.25)}
+            .sxp{border:1px solid #e2e8f0;border-radius:1.25rem;background:#fff;overflow:hidden;overflow-anchor:none;box-shadow:0 10px 30px -12px rgba(79,70,229,.25)}
             .sxp>summary{cursor:pointer;list-style:none;padding:1.05rem 1.2rem;color:#fff;display:flex;align-items:center;gap:.7rem;background:linear-gradient(120deg,#4f46e5,#9333ea 60%,#ec4899)}
             .sxp>summary::-webkit-details-marker{display:none}
             .sxp>summary b{font-size:.92rem;letter-spacing:.01em}
             .sxp>summary small{color:rgba(255,255,255,.85);font-size:.72rem;font-weight:500}
             .sxp>summary::after{content:"▾";margin-left:auto;transition:transform .2s}
             .sxp[open]>summary::after{transform:rotate(180deg)}
-            .sxp-body{padding:1.1rem 1.2rem 1.25rem;display:flex;flex-direction:column;gap:1rem}
+            .sxp-body{padding:1.1rem 1.2rem 1.25rem;display:flex;flex-direction:column;gap:1rem;min-width:0;overflow-anchor:none}
             .sxp-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:.5rem}
             .sxp-preset{display:flex;align-items:center;gap:.5rem;border:1px solid #e2e8f0;background:#fff;border-radius:.8rem;padding:.4rem .6rem;font-size:.72rem;font-weight:700;color:#334155;cursor:pointer;transition:all .15s}
             .sxp-preset i{width:1.4rem;height:1.4rem;border-radius:.45rem;flex:none;box-shadow:inset 0 0 0 1px rgba(15,23,42,.12)}
@@ -643,8 +657,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
             .sxp-tab{flex:1 0 auto;border:0;background:transparent;border-radius:.65rem;padding:.5rem .8rem;font-size:.75rem;font-weight:700;color:#64748b;cursor:pointer;white-space:nowrap;display:flex;gap:.4rem;align-items:center;justify-content:center;transition:all .15s}
             .sxp-tab:hover{color:#0f172a}
             .sxp-tab[aria-selected="true"]{background:#fff;color:#4f46e5;box-shadow:0 2px 8px -2px rgba(15,23,42,.18)}
-            .sxp-pane{display:none;flex-direction:column;gap:1rem}
-            .sxp-pane.is-active{display:flex}
+            .sxp-pane{display:none;flex-direction:column;gap:1rem;min-width:0;max-width:100%;overflow:hidden;overflow-anchor:none}
+            .sxp-pane.is-active{display:flex;height:auto;min-height:0;max-height:clamp(330px,52vh,590px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;overscroll-behavior-y:contain;padding:.15rem .2rem .5rem;scrollbar-gutter:stable;overflow-anchor:none}
+            .sxp-pane.is-active::-webkit-scrollbar{width:6px}.sxp-pane.is-active::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px}
             .sxp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.9rem}
             .sxp-wide{grid-column:1/-1}
             .sxp-field{display:flex;flex-direction:column;gap:.35rem;min-width:0}
@@ -658,6 +673,18 @@ require_once __DIR__ . '/../includes/admin_header.php';
             .sxp-chips span{display:block;padding:.4rem .7rem;border:1px solid #e2e8f0;border-radius:999px;background:#f8fafc;font-size:.72rem;font-weight:600;color:#475569;transition:all .12s;user-select:none}
             .sxp-chips label:hover span{border-color:#a5b4fc}
             .sxp-chips input:checked+span{background:#4f46e5;border-color:#4f46e5;color:#fff;box-shadow:0 4px 10px -4px rgba(79,70,229,.6)}
+            .sxp-layouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:.5rem}.sxp-layout{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:66px;cursor:pointer;border:1px solid #e2e8f0;border-radius:.75rem;padding:.5rem;background:#f8fafc;text-align:center;font-size:.68rem;font-weight:700;color:#475569;overflow:hidden}.sxp-layout input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:2}.sxp-layout:focus-within{outline:2px solid #818cf8;outline-offset:2px}.sxp-layout:has(input:checked){border-color:#4f46e5;background:#eef2ff;color:#4338ca;box-shadow:0 0 0 2px rgba(79,70,229,.12)}/* Miniaturas ilustrativas dos modelos de conteúdo */
+            .sxp-layout-icon{width:100%;height:32px;display:flex;flex-direction:row;gap:3px;align-items:center;justify-content:center;margin:0 0 4px;pointer-events:none}
+            .sxp-layout-icon i{display:block;flex:none;background:#c7d2fe;border-radius:2px}
+            .sxp-layout-icon .m{width:32%;height:100%}
+            .sxp-layout-icon .t{width:48%;height:58%;background:#94a3b8}
+            .sxp-layout.left .sxp-layout-icon{flex-direction:row}
+            .sxp-layout.right .sxp-layout-icon{flex-direction:row-reverse}
+            .sxp-layout.top .sxp-layout-icon,.sxp-layout.bottom .sxp-layout-icon{height:32px;flex-direction:column;gap:2px}
+            .sxp-layout.top .sxp-layout-icon .m,.sxp-layout.bottom .sxp-layout-icon .m{width:72%;height:45%}
+            .sxp-layout.top .sxp-layout-icon .t,.sxp-layout.bottom .sxp-layout-icon .t{width:48%;height:30%}
+            .sxp-layout.bottom .sxp-layout-icon{flex-direction:column-reverse}
+            .sxp-layout.text .sxp-layout-icon{opacity:.9}
             .sxp-color-row{display:flex;gap:.35rem;align-items:center}
             .sxp-picker{width:2.5rem;height:2.25rem;padding:2px;border:1px solid #e2e8f0;border-radius:.6rem;background:#fff;cursor:pointer;flex:none}
             .sxp-clear{border:1px solid #e2e8f0;background:#fff;border-radius:.6rem;width:1.9rem;height:2.25rem;cursor:pointer;color:#94a3b8;flex:none}
@@ -686,10 +713,11 @@ require_once __DIR__ . '/../includes/admin_header.php';
             .sxp-reset{border:1px solid #e2e8f0;background:#fff;border-radius:.7rem;padding:.45rem .9rem;font-size:.72rem;font-weight:700;color:#475569;cursor:pointer}
             .sxp-reset:hover{color:#dc2626;border-color:#fecaca}
             .sxp [hidden]{display:none!important}
+            @media (max-width:767px){.sxp-pane.is-active{height:auto;min-height:0;max-height:70vh}.sxp-tabs{position:relative;top:auto;z-index:1}}
         </style>
 
         <details class="sxp" id="sxPanel" <?= !sectionStyleIsEmpty($styleValues) ? 'open' : '' ?>>
-            <summary><span style="font-size:1.2rem">🎨</span><b>Aparência e layout</b><small>posição, fontes, cores, fundo, cards e efeitos — com preview ao vivo</small></summary>
+            <summary><span style="font-size:1.2rem">🎨</span><b>3. Aparência e layout</b><small>posição, fontes, cores, fundo, cards e efeitos — com preview ao vivo</small></summary>
             <div class="sxp-body">
                 <div>
                     <p class="sxp-label" style="margin:0 0 .45rem">Estilos prontos <span style="font-weight:500;color:#94a3b8">(ponto de partida — ajuste depois)</span></p>
@@ -702,11 +730,11 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
                 <div class="sxp-tabs" role="tablist" aria-label="Grupos de aparência">
                     <?php $first = true; foreach ($sxTabs as $tk => $tv): ?>
-                        <button type="button" class="sxp-tab" role="tab" data-tab="<?= e($tk) ?>" aria-selected="<?= $first ? 'true' : 'false' ?>"><span aria-hidden="true"><?= $tv[0] ?></span> <?= e($tv[1]) ?></button>
+                        <button type="button" class="sxp-tab" role="tab" data-tab="<?= e($tk) ?>" aria-controls="sxp-pane-<?= e($tk) ?>" aria-selected="<?= $first ? 'true' : 'false' ?>" tabindex="<?= $first ? '0' : '-1' ?>"><span aria-hidden="true"><?= $tv[0] ?></span> <?= e($tv[1]) ?></button>
                     <?php $first = false; endforeach; ?>
                 </div>
 
-                <div class="sxp-pane is-active" data-pane="layout" role="tabpanel">
+                <div class="sxp-pane is-active" id="sxp-pane-layout" data-pane="layout" role="tabpanel">
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('text_align', 'Alinhamento do conteúdo'); ?></div>
                         <div class="sxp-wide"><?php $sxChips('content_width', 'Largura do conteúdo', 'Limita a largura do texto e dos cards; "Tela cheia" ocupa toda a largura.'); ?></div>
@@ -719,7 +747,29 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <div class="sxp-pane" data-pane="fundo" role="tabpanel">
+                <div class="sxp-pane" id="sxp-pane-midia" data-pane="midia" role="tabpanel" hidden>
+                    <div class="sxp-grid">
+                        <div class="sxp-wide"><p class="sxp-label">Imagem dentro do conteúdo</p><small>Esta imagem é um elemento real do layout, independente do fundo da seção.</small></div>
+                        <div class="sxp-wide sxp-field"><span class="sxp-label">Modelo visual</span><div class="sxp-layouts" role="radiogroup" aria-label="Modelo visual"><?php foreach (['' => ['Texto', 'text'], 'image-left' => ['Imagem à esquerda', 'left'], 'image-right' => ['Imagem à direita', 'right'], 'image-top' => ['Imagem acima', 'top'], 'image-bottom' => ['Texto acima', 'bottom']] as $lv => $ld): ?><label class="sxp-layout <?= e($ld[1]) ?>"><input type="radio" name="sx[content_layout]" value="<?= e($lv) ?>" <?= $styleValues['content_layout'] === $lv ? 'checked' : '' ?>><span class="sxp-layout-icon"><i class="m"></i><i class="t"></i></span><?= e($ld[0]) ?></label><?php endforeach; ?></div><small>Imagem e texto lado a lado se reorganizam automaticamente no celular.</small></div>
+                        <div class="sxp-wide">
+                            <span class="sxp-label">Selecionar imagem da biblioteca</span>
+                            <div class="sxp-media-grid" style="margin-top:.4rem">
+                                <label class="sxp-media none"><input type="radio" name="image_path" value="" <?= empty($section['image_path']) ? 'checked' : '' ?>>Remover</label>
+                                <?php foreach ($sxMedia as $mrow): if ($mrow['is_video']) continue; $imgFilepath = $mrow['filepath']; $thumbRel = preg_replace('/\.[A-Za-z0-9]+$/', '-thumb.webp', $imgFilepath); $thumbUrl = file_exists(__DIR__ . '/../' . $thumbRel) ? SITE_URL . '/' . $thumbRel : SITE_URL . '/' . ltrim($imgFilepath, '/'); ?>
+                                    <label class="sxp-media" title="<?= e($mrow['filename']) ?>"><input type="radio" name="image_path" value="<?= e($imgFilepath) ?>" <?= ($section['image_path'] ?? '') === $imgFilepath ? 'checked' : '' ?>><img src="<?= e($thumbUrl) ?>" alt="" loading="lazy"><em><?= e($mrow['filename']) ?></em></label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <div class="sxp-wide"><?php $sxChips('media_width', 'Largura da imagem'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('media_ratio', 'Proporção da imagem'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('media_fit', 'Ajuste da imagem'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('media_radius', 'Cantos da imagem'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('content_gap', 'Espaço entre imagem e conteúdo'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('content_vertical', 'Alinhamento vertical'); ?></div>
+                    </div>
+                </div>
+
+                <div class="sxp-pane" id="sxp-pane-fundo" data-pane="fundo" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('bg_mode', 'Cor de fundo'); ?></div>
                         <div data-show="bg_mode:solid,gradient"><?php $sxColor('bg_color', 'Cor do fundo'); ?></div>
@@ -764,7 +814,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                 </div>
 
-                <div class="sxp-pane" data-pane="texto" role="tabpanel">
+                <div class="sxp-pane" id="sxp-pane-texto" data-pane="texto" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <?php $sxSelect('title_font', 'Fonte do título', $sxFontOptions); $sxSelect('body_font', 'Fonte do texto', $sxFontOptions); ?>
                         <div class="sxp-wide"><?php $sxChips('title_size', 'Tamanho do título'); ?></div>
@@ -779,8 +829,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         <div class="sxp-wide"><?php $sxChips('body_leading', 'Altura da linha do texto'); ?></div>
                     </div>
                 </div>
-
-                <div class="sxp-pane" data-pane="cores" role="tabpanel">
+                <div class="sxp-pane" id="sxp-pane-cores" data-pane="cores" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <?php
                             $sxColor('title_color', 'Cor do título');
@@ -789,23 +838,29 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         ?>
                     </div>
                 </div>
-
-                <div class="sxp-pane" data-pane="cards" role="tabpanel">
+                <div class="sxp-pane" id="sxp-pane-cards" data-pane="cards" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('card_style', 'Estilo dos cards'); ?></div>
                         <div class="sxp-wide"><?php $sxChips('card_radius', 'Cantos dos cards'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('card_border_width', 'Espessura da borda'); ?></div>
+                        <div class="sxp-wide"><?php $sxChips('card_shadow', 'Intensidade da sombra'); ?></div>
                         <div class="sxp-wide"><?php $sxChips('card_hover', 'Efeito ao passar o mouse'); ?></div>
-                        <?php $sxColor('card_bg', 'Fundo dos cards'); $sxColor('card_text', 'Texto dos cards'); ?>
+                        <?php $sxColor('card_bg', 'Fundo dos cards'); $sxColor('card_text', 'Texto dos cards'); $sxColor('card_border_color', 'Cor da borda'); ?>
                         <div class="sxp-wide"><?php $sxChips('btn_radius', 'Formato dos botões'); ?></div>
                     </div>
                 </div>
-
-                <div class="sxp-pane" data-pane="efeitos" role="tabpanel">
+                <div class="sxp-pane" id="sxp-pane-efeitos" data-pane="efeitos" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('animation', 'Animação ao rolar a página', 'Respeita a opção "reduzir movimento" do sistema do visitante.'); ?></div>
                         <div class="sxp-wide sxp-field">
                             <span class="sxp-label">Selo</span>
                             <label class="sxp-switch"><input type="checkbox" name="sx[hide_badge]" value="1" <?= $styleValues['hide_badge'] === '1' ? 'checked' : '' ?>> Ocultar o selo (etiqueta pequena acima do título)</label>
+                        </div>
+                        <div class="sxp-wide sxp-field"><span class="sxp-label">Elementos visíveis</span>
+                            <label class="sxp-switch"><input type="checkbox" name="sx[hide_title]" value="1" <?= $styleValues['hide_title'] === '1' ? 'checked' : '' ?>> Ocultar título</label>
+                            <label class="sxp-switch"><input type="checkbox" name="sx[hide_description]" value="1" <?= $styleValues['hide_description'] === '1' ? 'checked' : '' ?>> Ocultar descrição</label>
+                            <label class="sxp-switch"><input type="checkbox" name="sx[hide_buttons]" value="1" <?= $styleValues['hide_buttons'] === '1' ? 'checked' : '' ?>> Ocultar botões</label>
+                            <label class="sxp-switch"><input type="checkbox" name="sx[hide_media]" value="1" <?= $styleValues['hide_media'] === '1' ? 'checked' : '' ?>> Ocultar imagem</label>
                         </div>
                     </div>
                 </div>
@@ -843,12 +898,12 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
         <?php endif; ?>
 
-        <div class="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-            <button type="submit" name="action" value="save_draft" class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
-                Salvar rascunho
+        <div id="editorActions" class="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <button type="submit" name="action" value="save_draft" class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
+                4. Salvar rascunho
             </button>
             <button type="submit" name="action" value="publish" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-100 transition">
-                Publicar alterações
+                4. Publicar alterações
             </button>
         </div>
     </div>
@@ -876,18 +931,17 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 $initialImgUrl = (!$initialIsVideo && !empty($activeBg)) ? SITE_URL . '/' . ltrim($activeBg, '/') : '';
             ?>
             <div id="previewMockupCard" class="w-full bg-slate-900 rounded-b-3xl border border-slate-200 overflow-hidden relative shadow-lg min-h-[460px] flex flex-col justify-between text-white p-6 transition-all duration-300" style="background-image: <?= $initialImgUrl ? "linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.8)), url('{$initialImgUrl}')" : 'none' ?>; background-size: cover; background-position: center;">
-                
                 <video id="previewVideoBg" autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover pointer-events-none <?= !$initialIsVideo ? 'hidden' : '' ?>" style="z-index: 0;">
                     <source src="<?= e($initialVideoUrl) ?>" type="video/mp4">
                 </video>
                 <div id="previewVideoOverlay" class="absolute inset-0 bg-slate-950/60 pointer-events-none <?= !$initialIsVideo ? 'hidden' : '' ?>" style="z-index: 1;"></div>
-
                 <div class="relative flex items-center justify-between border-b border-white/10 pb-4" style="z-index: 2;">
                     <span class="font-bold text-sm tracking-tight text-white">Tunísia CMS</span>
                     <span class="text-[10px] bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 px-2.5 py-0.5 rounded-full font-medium">Seção: #<?= e($section['identifier']) ?></span>
                 </div>
-
-                <div class="relative my-auto py-8" style="z-index: 2;">
+                <div id="liveContentLayout" class="relative my-auto py-8 flex flex-col gap-5" style="z-index: 2;">
+                    <img id="liveContentImage" src="<?= !empty($section['image_path']) ? e(SITE_URL . '/' . ltrim((string)$section['image_path'], '/')) : '' ?>" alt="" class="hidden w-full max-h-52 object-cover rounded-xl">
+                    <div id="liveContentCopy">
                     <div class="mb-2">
                         <span id="liveBadge" class="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded">
                             <?= e($section['badge'] ?? 'Seção') ?>
@@ -903,8 +957,8 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         <span id="liveBtn1" class="px-3 py-1 bg-indigo-600 text-white rounded text-[10px] font-semibold <?= empty($section['primary_btn_text']) ? 'hidden' : '' ?>"><?= e($section['primary_btn_text']) ?></span>
                         <span id="liveBtn2" class="px-3 py-1 bg-white/20 text-white rounded text-[10px] <?= empty($section['secondary_btn_text']) ? 'hidden' : '' ?>"><?= e($section['secondary_btn_text']) ?></span>
                     </div>
+                    </div>
                 </div>
-
                 <div class="relative text-[10px] text-white/50 border-t border-white/10 pt-3 flex justify-between items-center" style="z-index: 2;">
                     <span>Pré-visualização ao vivo</span>
                     <span>Modo de Edição</span>
@@ -952,6 +1006,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
     const liveBtn1 = document.getElementById('liveBtn1');
     const liveBtn2 = document.getElementById('liveBtn2');
     const contrastBox = document.getElementById('sxContrast');
+    const liveContentLayout = document.getElementById('liveContentLayout');
+    const liveContentCopy = document.getElementById('liveContentCopy');
+    const liveContentImage = document.getElementById('liveContentImage');
 
     let liveDecor = null;
     if (liveTitle) {
@@ -982,10 +1039,40 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
     const tabs = panel.querySelectorAll('.sxp-tab');
     function showTab(name) {
-        tabs.forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
-        panel.querySelectorAll('.sxp-pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === name));
+        tabs.forEach(t => {
+            const selected = t.dataset.tab === name;
+            t.setAttribute('aria-selected', selected ? 'true' : 'false');
+            t.tabIndex = selected ? 0 : -1;
+        });
+        panel.querySelectorAll('.sxp-pane').forEach(p => {
+            const selected = p.dataset.pane === name;
+            p.classList.toggle('is-active', selected);
+            p.hidden = !selected;
+            if (selected) {
+                p.scrollTop = 0;
+            }
+        });
     }
-    tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+    tabs.forEach(t => t.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const tabName = t.dataset.tab;
+        if (!tabName) return;
+        showTab(tabName);
+    }));
+
+    tabs.forEach((t, index) => t.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const current = Array.from(tabs).indexOf(t);
+        let next = current;
+        if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+        if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = tabs.length - 1;
+        const target = tabs[next];
+        if (target) { showTab(target.dataset.tab); target.focus({ preventScroll: true }); }
+    }));
 
     panel.querySelectorAll('.sxp-chips label').forEach(lbl => {
         lbl.addEventListener('click', function(e) {
@@ -1168,6 +1255,26 @@ require_once __DIR__ . '/../includes/admin_header.php';
             }
             [liveBtn1, liveBtn2].forEach(b => { if (b) b.style.borderRadius = BTN_R[val('btn_radius')] || ''; });
             if (liveBtn1) liveBtn1.style.background = accent;
+            if (liveTitle) liveTitle.style.display = val('hide_title') === '1' ? 'none' : '';
+            if (liveSub) liveSub.style.display = val('hide_description') === '1' ? 'none' : '';
+            if (liveBtn1) liveBtn1.parentElement.style.display = val('hide_buttons') === '1' ? 'none' : '';
+            if (liveContentLayout && liveContentImage && liveContentCopy) {
+                const chosen = panel.querySelector('input[name="image_path"]:checked');
+                const path = chosen ? chosen.value : '';
+                const layout = val('content_layout');
+                const showImage = !!path && layout !== 'text' && val('hide_media') !== '1';
+                liveContentImage.classList.toggle('hidden', !showImage);
+                if (showImage) liveContentImage.src = BASE + '/' + path.replace(/^\/+/, '');
+                liveContentLayout.style.display = (layout === 'image-left' || layout === 'image-right') ? 'flex' : 'flex';
+                liveContentLayout.style.flexDirection = layout === 'image-right' ? 'row-reverse' : (layout === 'image-left' ? 'row' : (layout === 'image-bottom' ? 'column-reverse' : 'column'));
+                liveContentLayout.style.alignItems = val('content_vertical') === 'start' ? 'flex-start' : (val('content_vertical') === 'end' ? 'flex-end' : 'center');
+                liveContentLayout.style.gap = ({sm:'12px',md:'22px',lg:'36px'})[val('content_gap')] || '20px';
+                liveContentImage.style.width = (layout === 'image-left' || layout === 'image-right') ? ({sm:'30%',md:'42%',lg:'56%'})[val('media_width')] || '42%' : '100%';
+                liveContentImage.style.aspectRatio = ({square:'1',landscape:'4 / 3',portrait:'3 / 4',wide:'16 / 7'})[val('media_ratio')] || '';
+                liveContentImage.style.objectFit = val('media_fit') || 'cover';
+                liveContentImage.style.borderRadius = ({none:'0',md:'12px',lg:'24px',pill:'999px'})[val('media_radius')] || '12px';
+                liveContentCopy.style.flex = '1 1 0';
+            }
         } catch (err) {
             console.error("Erro em updatePreview:", err);
         }
@@ -1187,6 +1294,18 @@ require_once __DIR__ . '/../includes/admin_header.php';
     panel.addEventListener('change', refresh);
 
     panel.querySelectorAll('.sxp-media input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', refresh);
+    });
+    panel.querySelectorAll('.sxp-layout input[type="radio"]').forEach(radio => {
+        radio.addEventListener('click', () => {
+            const scrollX = window.scrollX;
+            const scrollY = window.scrollY;
+            requestAnimationFrame(() => {
+                if (Math.abs(window.scrollY - scrollY) > 2 || Math.abs(window.scrollX - scrollX) > 2) {
+                    window.scrollTo({ left: scrollX, top: scrollY, behavior: 'auto' });
+                }
+            });
+        });
         radio.addEventListener('change', refresh);
     });
 
@@ -1236,14 +1355,12 @@ require_once __DIR__ . '/../includes/admin_header.php';
     const inputBadge = document.getElementById('inputBadge');
     const inputBtn1 = document.getElementById('inputBtn1Text');
     const inputBtn2 = document.getElementById('inputBtn2Text');
-
     const liveTitle = document.getElementById('liveTitle');
     const liveSubtitle = document.getElementById('liveSubtitle');
     const liveBadge = document.getElementById('liveBadge');
     const liveBtn1 = document.getElementById('liveBtn1');
     const liveBtn2 = document.getElementById('liveBtn2');
     const headerTitle = document.getElementById('headerTitle');
-
     (function () {
         const metaEl = document.getElementById('itemTypeMeta');
         if (!metaEl) return;
@@ -1252,6 +1369,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
         const list = document.getElementById('sectionItemsList');
         const filtersEl = document.getElementById('siFilters');
         const emptyEl = document.getElementById('siEmpty');
+        const statusEl = document.getElementById('siStatus');
         const toggleAllBtn = document.getElementById('siToggleAll');
         const SITE_URL = <?= json_encode(SITE_URL) ?>;
         let activeFilter = 'all';
@@ -1316,9 +1434,10 @@ require_once __DIR__ . '/../includes/admin_header.php';
             const text = el('span', { class: 'si-text' });
             const tTitle = el('span', { class: 'si-title' });
             const tSub = el('span', { class: 'si-sub' });
+            const complete = el('span', { class: 'si-complete' });
             text.append(tTitle, tSub);
             const typeChip = el('span', { class: 'si-type' });
-            summary.append(thumb, text, typeChip, el('span', null, ICONS.chevron));
+            summary.append(thumb, text, complete, typeChip, el('span', null, ICONS.chevron));
             const tools = el('div', { class: 'si-tools' });
             const mk = (cls, label, icon) => { const b = el('button', { type: 'button', class: 'si-icon-btn ' + cls, title: label, 'aria-label': label }, icon); return b; };
             const bUp = mk('up', 'Mover para cima', ICONS.up);
@@ -1348,6 +1467,12 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 c.value = d[f] || '';
                 inputs[f] = c;
                 const w = field(f, FIELDS[f][0], c, f === 'description' ? 'full' : '', '');
+                if (f === 'description') {
+                    const tools = el('div', { class: 'si-field-tools' });
+                    const help = el('span'); help.textContent = 'Escreva uma descrição clara para o visitante.';
+                    const counter = el('span', { class: 'si-counter', 'data-counter': 'description' });
+                    tools.append(help, counter); w.appendChild(tools);
+                }
                 wrappers[f] = w;
                 return w;
             };
@@ -1386,6 +1511,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 moreDetails.hidden = otherHost.length === 0;
                 moreDetails.open = otherHost.some(w => (w.querySelector('input,textarea').value || '').trim() !== '');
                 refreshSummary();
+                updateStatus();
             }
 
             function refreshSummary() {
@@ -1407,10 +1533,20 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 } else {
                     thumb.textContent = icon || (type === 'timeline' ? '📅' : type === 'stat' ? '#' : type === 'map_marker' ? '📍' : '•');
                 }
+                const description = (inputs.description.value || '').trim();
+                const words = description ? description.split(/\s+/).length : 0;
+                const counter = row.querySelector('[data-counter="description"]');
+                if (counter) {
+                    counter.textContent = description.length + ' caracteres · ' + words + ' palavras';
+                    counter.classList.toggle('is-long', description.length > 600);
+                }
+                const ready = title !== '' && (description !== '' || type === 'stat' || type === 'map_marker');
+                complete.textContent = ready ? 'Pronto' : 'Completar';
+                complete.classList.toggle('ready', ready);
             }
 
             select.addEventListener('change', applyType);
-            Object.keys(inputs).forEach(k => { if (k !== 'type') inputs[k].addEventListener('input', refreshSummary); });
+            Object.keys(inputs).forEach(k => { if (k !== 'type') inputs[k].addEventListener('input', () => { refreshSummary(); updateStatus(); }); });
 
             function setOpen(open) {
                 row.classList.toggle('is-open', open);
@@ -1482,6 +1618,22 @@ require_once __DIR__ . '/../includes/admin_header.php';
             }
         }
 
+        function updateStatus() {
+            if (!statusEl) return;
+            const allRows = rows();
+            const ready = allRows.filter(r => r.querySelector('.si-complete.ready')).length;
+            const types = new Set(allRows.map(r => r.dataset.type)).size;
+            statusEl.replaceChildren();
+            const pill = (label, value, state) => {
+                const p = el('span', { class: 'si-status-pill' });
+                p.append(el('i', { class: 'si-status-dot ' + state }), document.createTextNode(label + ' '), Object.assign(el('strong'), { textContent: value }));
+                statusEl.appendChild(p);
+            };
+            pill('Itens:', String(allRows.length), allRows.length ? 'ready' : '');
+            pill('Prontos:', ready + '/' + allRows.length, ready === allRows.length && allRows.length ? 'ready' : 'warn');
+            pill('Tipos:', String(types), '');
+        }
+
         function refresh() {
             rows().forEach(r => { r.hidden = !(activeFilter === 'all' || r.dataset.type === activeFilter); });
             renderFilters();
@@ -1493,6 +1645,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 if (down) down.disabled = idx === -1 || idx === vis.length - 1;
             });
             if (emptyEl) emptyEl.hidden = rows().length > 0;
+            updateStatus();
             updateToggleAll();
         }
 

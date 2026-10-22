@@ -1,7 +1,7 @@
 <?php
 /**
  * Aparência e layout por seção (alinhamento, largura, espaçamento, fundo, fontes, tamanhos,
-
+ * cores, cards e animação).
  */
 
 const SX_FONTS = [
@@ -36,10 +36,19 @@ function sectionStyleChoices(): array {
         'card_style'      => ['' => 'Padrão', 'flat' => 'Plano', 'bordered' => 'Com borda', 'soft' => 'Sombra suave', 'elevated' => 'Sombra forte', 'glass' => 'Vidro', 'accent' => 'Borda destaque'],
         'card_radius'     => ['' => 'Padrão', 'sq' => 'Reto', 'md' => 'Arredondado', 'lg' => 'Bem arredondado', 'xl' => 'Muito arredondado'],
         'card_hover'      => ['' => 'Padrão', 'none' => 'Nenhum', 'lift' => 'Subir', 'glow' => 'Brilho', 'zoom' => 'Ampliar'],
+        'card_border_width' => ['' => 'Padrão', 'none' => 'Sem borda', 'thin' => 'Fina', 'medium' => 'Média', 'thick' => 'Espessa'],
+        'card_shadow'     => ['' => 'Padrão', 'none' => 'Sem sombra', 'soft' => 'Suave', 'medium' => 'Média', 'strong' => 'Forte'],
         'btn_radius'      => ['' => 'Padrão', 'sq' => 'Reto', 'md' => 'Suave', 'pill' => 'Pílula'],
         'grid_cols'       => ['' => 'Auto', '1' => '1', '2' => '2', '3' => '3', '4' => '4'],
         'grid_gap'        => ['' => 'Padrão', 'sm' => 'Curto', 'md' => 'Médio', 'lg' => 'Largo'],
         'header_gap'      => ['' => 'Padrão', 'sm' => 'Curto', 'md' => 'Médio', 'lg' => 'Largo'],
+        'content_layout'  => ['' => 'Padrão', 'text' => 'Somente texto', 'image-left' => 'Imagem à esquerda', 'image-right' => 'Imagem à direita', 'image-top' => 'Imagem acima', 'image-bottom' => 'Imagem abaixo'],
+        'media_width'     => ['' => 'Automática', 'sm' => 'Pequena', 'md' => 'Média', 'lg' => 'Grande'],
+        'media_ratio'     => ['' => 'Original', 'square' => 'Quadrada', 'landscape' => 'Horizontal', 'portrait' => 'Vertical', 'wide' => 'Panorâmica'],
+        'media_fit'       => ['' => 'Padrão (cover)', 'cover' => 'Preencher (cover)', 'contain' => 'Exibir inteira (contain)'],
+        'media_radius'    => ['' => 'Padrão', 'none' => 'Reta', 'md' => 'Suave', 'lg' => 'Arredondada', 'pill' => 'Pílula'],
+        'content_gap'     => ['' => 'Padrão', 'sm' => 'Compacto', 'md' => 'Confortável', 'lg' => 'Amplo'],
+        'content_vertical'=> ['' => 'Padrão', 'start' => 'Topo', 'center' => 'Centro', 'end' => 'Base'],
         'min_height'      => ['' => 'Auto', 'half' => 'Meia tela', 'tall' => '¾ da tela', 'screen' => 'Tela cheia'],
         'title_leading'   => ['' => 'Padrão', 'tight' => 'Compacta', 'normal' => 'Normal', 'relaxed' => 'Folgada'],
         'body_leading'    => ['' => 'Padrão', 'tight' => 'Compacta', 'normal' => 'Normal', 'relaxed' => 'Folgada'],
@@ -51,7 +60,7 @@ function sectionStyleChoices(): array {
     ];
 }
 
-const SX_COLOR_FIELDS = ['bg_color', 'bg_color2', 'title_color', 'body_color', 'accent_color', 'card_bg', 'card_text'];
+const SX_COLOR_FIELDS = ['bg_color', 'bg_color2', 'title_color', 'body_color', 'accent_color', 'card_bg', 'card_text', 'card_border_color'];
 const SX_FONT_FIELDS  = ['title_font', 'body_font'];
 
 function sectionStyleDefaults(): array {
@@ -59,7 +68,7 @@ function sectionStyleDefaults(): array {
     foreach (array_keys(sectionStyleChoices()) as $k)$d[$k] = ($k === 'bg_direction') ? 'down' : '';
     foreach (SX_COLOR_FIELDS as $k) $d[$k] = '';
     foreach (SX_FONT_FIELDS as $k) $d[$k] = '';
-    $d['hide_badge'] = '';$d['bg_image'] = '';
+    $d['hide_badge'] = '';$d['hide_title'] = '';$d['hide_description'] = '';$d['hide_buttons'] = '';$d['hide_media'] = '';$d['bg_image'] = '';
     $d['bg_overlay'] = '';$d['bg_fixed'] = '';
     $d['hide_video'] = '';$d['hide_overlay'] = '';
     return $d;
@@ -86,8 +95,12 @@ function sanitizeSectionStyle($raw): array {$out = sectionStyleDefaults();
         $v = isset($raw[$field]) && is_scalar($raw[$field]) ? (string)$raw[$field] : '';$out[$field] = ($v !== '' && isset(SX_FONTS[$v])) ?$v : '';
     }
     $out['hide_badge'] = !empty($raw['hide_badge']) ? '1' : '';
+    $out['hide_title'] = !empty($raw['hide_title']) ? '1' : '';
+    $out['hide_description'] = !empty($raw['hide_description']) ? '1' : '';
+    $out['hide_buttons'] = !empty($raw['hide_buttons']) ? '1' : '';
+    $out['hide_media'] = !empty($raw['hide_media']) ? '1' : '';
     $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';      
-    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : '';  
+    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : ''; 
 
     $img = isset($raw['bg_image']) && is_scalar($raw['bg_image']) ? trim((string)$raw['bg_image']) : '';$out['bg_image'] = sxValidImagePath($img) ?$img : '';
     $overlay = (isset($raw['bg_overlay']) && is_numeric($raw['bg_overlay'])) ? (int)$raw['bg_overlay'] : -1;
@@ -111,10 +124,12 @@ function sectionStyleClasses(array $s): string {
     if (sectionStyleIsEmpty($s)) return '';$c = ['sx'];
     foreach ([
         'text_align' => 'ta', 'content_width' => 'w', 'padding_y' => 'py', 'title_size' => 'ts', 'title_weight' => 'tw',
-        'title_spacing' => 'tl', 'body_size' => 'bs', 'card_style' => 'cs', 'card_radius' => 'cr',
+        'title_spacing' => 'tl', 'body_size' => 'bs', 'card_style' => 'cs', 'card_radius' => 'cr', 'card_border_width' => 'cbw', 'card_shadow' => 'csh',
         'card_hover' => 'ch', 'btn_radius' => 'br', 'grid_cols' => 'gc', 'grid_gap' => 'gg', 'header_gap' => 'hg',
         'min_height' => 'mh', 'title_leading' => 'tld', 'body_leading' => 'bld', 'title_style' => 'tst',
-        'title_decor' => 'td', 'title_effect' => 'te', 'hide_on' => 'ho'
+        'title_decor' => 'td', 'title_effect' => 'te', 'hide_on' => 'ho', 'content_layout' => 'cl',
+        'media_width' => 'mw', 'media_ratio' => 'mr', 'media_fit' => 'mf', 'media_radius' => 'mrad',
+        'content_gap' => 'cgap', 'content_vertical' => 'cv'
     ] as $field =>$abbr) {
         if (isset($s[$field]) && $s[$field] !== '') $c[] = "sx-{$abbr}-{$s[$field]}";
     }
@@ -128,10 +143,14 @@ function sectionStyleClasses(array $s): string {
     if (isset($s['accent_color']) && $s['accent_color'] !== '')$c[] = 'sx-ac';
     if (isset($s['card_bg']) && $s['card_bg'] !== '')$c[] = 'sx-cb';
     if (isset($s['card_text']) && $s['card_text'] !== '')$c[] = 'sx-ct';
+    if (isset($s['card_border_color']) && $s['card_border_color'] !== '')$c[] = 'sx-cborder';
     if (isset($s['title_font']) &&$s['title_font'] !== '' && $s['title_font'] !== 'sans')$c[] = 'sx-tf';
     if (isset($s['body_font']) &&$s['body_font'] !== '' && $s['body_font'] !== 'sans')$c[] = 'sx-bf';
     if (isset($s['animation']) && $s['animation'] !== '')$c[] = 'sx-anim';
     if (isset($s['hide_badge']) && $s['hide_badge'] === '1')$c[] = 'sx-hide-badge';
+    foreach (['title' => 'sx-hide-title', 'description' => 'sx-hide-description', 'buttons' => 'sx-hide-buttons', 'media' => 'sx-hide-media'] as $field => $class) {
+        if (($s['hide_' . $field] ?? '') === '1') $c[] = $class;
+    }
     if (isset($s['hide_overlay']) && $s['hide_overlay'] === '1')$c[] = 'sx-no-overlay';
     return implode(' ', $c);
 }
@@ -163,6 +182,7 @@ function sectionStyleInline(array $s): string {$v = [];
     if (!empty($s['accent_color'])) $v[] = '--sx-accent:' .$s['accent_color'];
     if (!empty($s['card_bg']))      $v[] = '--sx-card-bg:' .$s['card_bg'];
     if (!empty($s['card_text']))    $v[] = '--sx-card-text:' .$s['card_text'];
+    if (!empty($s['card_border_color'])) $v[] = '--sx-card-border:' .$s['card_border_color'];
     if (!empty($s['title_font']) && isset(SX_FONTS[$s['title_font']])) $v[] = '--sx-title-font:' . SX_FONTS[$s['title_font']]['stack'];
     if (!empty($s['body_font']) && isset(SX_FONTS[$s['body_font']]))   $v[] = '--sx-body-font:' . SX_FONTS[$s['body_font']]['stack'];
     if (!empty($s['title_weight'])) $v[] = '--sx-title-weight:' .$s['title_weight'];
