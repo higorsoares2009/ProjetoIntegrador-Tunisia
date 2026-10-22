@@ -593,11 +593,29 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     <input type="text" name="custom_domain" value="<?= e($settings['custom_domain'] ?? 'projetotunisia.com.br') ?>" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="meudominio.com.br">
                 </div>
 
-                <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-2">
-                    <p><strong>URL Base Atual:</strong> <code class="bg-white px-2 py-0.5 rounded border border-slate-200"><?= SITE_URL ?></code></p>
-                    <p><strong>Ambiente:</strong> <?= $_SERVER['SERVER_SOFTWARE'] ?? 'Apache / XAMPP' ?></p>
-                    <p><strong>PHP:</strong> <?= PHP_VERSION ?></p>
-                    <p><strong>Banco de Dados:</strong> MySQL 5.7+ / MariaDB (UTF-8 mb4)</p>
+                
+                
+                <div class="w-full min-w-0 max-w-full box-border overflow-hidden p-3 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 space-y-4">
+                    <!-- URL Base Atual -->
+                    <div class="w-full min-w-0 max-w-full">
+                        <strong class="block mb-1">URL Base Atual:</strong>
+                        <code class="block w-full min-w-0 max-w-full box-border bg-white px-2 py-2 rounded-lg text-xs border border-slate-200 whitespace-normal break-all" style="overflow-wrap:anywhere; word-break:break-word;"> <?= e(SITE_URL) ?></code>
+                    </div>
+                    <!-- Ambiente -->
+                    <div class="w-full min-w-0 max-w-full">
+                        <strong class="block mb-1">Ambiente:</strong>
+                        <span class="block w-full min-w-0 max-w-full" style="overflow-wrap:anywhere; word-break:break-word;"><?= e($_SERVER['SERVER_SOFTWARE'] ?? 'Apache / XAMPP') ?></span>
+                    </div>
+                    <!-- Versão PHP -->
+                    <div class="w-full min-w-0 max-w-full">
+                        <strong class="block mb-1">PHP:</strong>
+                        <span class="block"><?= e(PHP_VERSION) ?></span>
+                    </div>
+                    <!-- Banco de Dados -->
+                    <div class="w-full min-w-0 max-w-full">
+                        <strong class="block mb-1">Banco de Dados:</strong>
+                        <span class="block w-full min-w-0 max-w-full" style="overflow-wrap:anywhere; word-break:break-word;">MySQL 5.7+ / MariaDB (UTF-8 mb4)</span>
+                    </div>
                 </div>
             </form>
         <?php endif; ?>
