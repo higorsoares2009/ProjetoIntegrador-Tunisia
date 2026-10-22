@@ -200,7 +200,13 @@ require_once __DIR__ . '/../includes/admin_header.php';
 
                 $mediaUrl = '';
                 if (!empty($mediaPath)) {
-                    $mediaUrl = preg_match('/^(https?:)?\/\//', $mediaPath) ? $mediaPath : SITE_URL . '/' . ltrim($mediaPath, '/');
+                    $mediaPath = trim($mediaPath);
+
+                    if (preg_match('/^(https?:)?\/\//i', $mediaPath) || strpos($mediaPath, 'data:') === 0) {
+                        $mediaUrl = $mediaPath;
+                    } else {
+                        $mediaUrl = rtrim(SITE_URL, '/') . '/' . ltrim($mediaPath, '/');
+                    }
                 }
             ?>
 

@@ -52,7 +52,8 @@ define('DB_USER', envValue('DB_USER', 'root'));
 define('DB_PASS', envValue('DB_PASS', ''));
 define('DB_CHARSET', 'utf8mb4');
 
-define('SITE_URL', rtrim((string)envValue('SITE_URL', '/ProjetoIntegrador-2026'), '/'));
+define('SITE_URL', rtrim((string)envValue('SITE_URL','/projetos/202500004/Projeto%20Integrador%202%20Ano/ProjetoIntegrador-Tunisia'), '/'));
+
 define('ADMIN_URL', SITE_URL . '/admin');
 define('UPLOADS_URL', SITE_URL . '/uploads/media');
 define('UPLOADS_DIR', __DIR__ . '/../uploads/media');
