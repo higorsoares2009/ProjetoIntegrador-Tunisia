@@ -11,13 +11,13 @@ require_once __DIR__ . '/includes/section_style.php';
 
 recordPageView();
 require_once __DIR__ . '/includes/scheduler.php';
-registerSchedulerCheck();
+registerSchedulerCheck(); 
 
 $cacheTtl = siteCacheTtl();
 $cacheEligible = $cacheTtl > 0
     && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
     && empty($_SERVER['QUERY_STRING'])
-    && !isset($_COOKIE[session_name()]);
+    && !isset($_COOKIE[session_name()]); 
 
 if ($cacheEligible) {
     $cacheFile = siteCacheFile();
@@ -47,6 +47,7 @@ if ($cacheEligible) {
 }
 
 $pdo = getPDO();
+
 $settings = [];
 $sections = [];
 
@@ -92,7 +93,6 @@ if ($pdo && $sections) {
     }
 }
 $siteCacheable = ($pdo !== null && !empty($sections));
-
 $siteFromDb = ($pdo !== null && !empty($sections));
 $showSection = fn(string $id): bool => !$siteFromDb || isset($sections[$id]);
 
@@ -277,8 +277,9 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
           <?= nl2br(e($hero['title'] ?? 'Tunísia: Cultura, Inovação e Conhecimento')) ?>
         </h1>
 
-        <p>
-          <?= e($hero['description'] ?? $hero['subtitle'] ?? '') ?>
+        <?php if (!empty($hero['subtitle'])): ?><p class="sx-subtitle"><?= e($hero['subtitle']) ?></p><?php endif; ?>
+        <p class="sx-description">
+          <?= e($hero['description'] ?? '') ?>
         </p>
 
         <div class="hero-buttons">
@@ -295,7 +296,8 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
       <div class="titulo-section">
         <span><?= e($sobre['badge'] ?? 'SOBRE O PROJETO') ?></span>
         <h2><?= e($sobre['title'] ?? 'Projeto Integrador') ?></h2>
-        <p><?= e($sobre['description'] ?? '') ?></p>
+        <?php if (!empty($sobre['subtitle'])): ?><p class="sx-subtitle"><?= e($sobre['subtitle']) ?></p><?php endif; ?>
+        <p class="sx-description"><?= e($sobre['description'] ?? '') ?></p>
       </div>
 
       <div class="cards">
@@ -327,12 +329,13 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
         <div class="section-header">
           <span><?= e($mapa['badge'] ?? 'EXPLORE A TUNÍSIA') ?></span>
           <h2><?= e($mapa['title'] ?? 'Mapa Interativo') ?></h2>
-          <p><?= e($mapa['description'] ?? '') ?></p>
+          <?php if (!empty($mapa['subtitle'])): ?><p class="sx-subtitle"><?= e($mapa['subtitle']) ?></p><?php endif; ?>
+          <p class="sx-description"><?= e($mapa['description'] ?? '') ?></p>
         </div>
 
         <div class="mapa-container">
           <div class="mapa-box">
-            <?= pictureTag($mapa['image_path'] ?? 'assets/img/mapa.png', 'Mapa da Tunísia') ?>
+            <?= pictureTag($mapa['image_path'] ?? 'uploads/media/mapa.png', 'Mapa da Tunísia') ?>
 
             <?php foreach (($itemsBySection['mapa'] ?? []) as $marker): if (($marker['item_type'] ?? '') !== 'map_marker') continue; $coords = explode(',', (string)($marker['link_url'] ?? '40%,50%')); $top = trim($coords[0] ?? '40%'); $left = trim($coords[1] ?? '50%'); ?>
               <button class="marker" style="top: <?= e($top) ?>; left: <?= e($left) ?>" data-city="<?= e($marker['title'] ?? '') ?>" data-regiao="<?= e($marker['subtitle'] ?? '') ?>" data-atracao="<?= e($marker['description'] ?? '') ?>" data-curiosidade="<?= e($marker['badge'] ?? '') ?>" aria-label="Ver <?= e($marker['title'] ?? 'local') ?>"></button>
@@ -386,7 +389,8 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
         <div class="section-header">
           <span><?= e($cultura['badge'] ?? 'SEMANA CULTURAL') ?></span>
           <h2><?= e($cultura['title'] ?? 'Celebrando a Tunísia') ?></h2>
-          <p><?= e($cultura['description'] ?? '') ?></p>
+          <?php if (!empty($cultura['subtitle'])): ?><p class="sx-subtitle"><?= e($cultura['subtitle']) ?></p><?php endif; ?>
+          <p class="sx-description"><?= e($cultura['description'] ?? '') ?></p>
         </div>
 
         <div class="cultural-grid">
@@ -410,7 +414,8 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
         <div class="section-header">
           <span><?= e($emp['badge'] ?? 'FEIRA DO EMPREENDEDORISMO') ?></span>
           <h2><?= $emp['title'] ?></h2>
-          <p><?= e($emp['description'] ?? '') ?></p>
+          <?php if (!empty($emp['subtitle'])): ?><p class="sx-subtitle"><?= e($emp['subtitle']) ?></p><?php endif; ?>
+          <p class="sx-description"><?= e($emp['description'] ?? '') ?></p>
         </div>
 
         <div class="business-grid">
@@ -440,7 +445,8 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
         <div class="section-header">
           <span><?= e($conhecimento['badge'] ?? 'FEIRA DO CONHECIMENTO') ?></span>
           <h2><?= titleWithHighlight($conhecimento['title'] ?? '') ?></h2>
-          <p><?= e($conhecimento['description'] ?? '') ?></p>
+          <?php if (!empty($conhecimento['subtitle'])): ?><p class="sx-subtitle"><?= e($conhecimento['subtitle']) ?></p><?php endif; ?>
+          <p class="sx-description"><?= e($conhecimento['description'] ?? '') ?></p>
         </div>
 
         <div class="knowledge-grid">
@@ -464,7 +470,8 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
         <div class="section-header">
           <span><?= e($cronograma['badge'] ?? 'DESENVOLVIMENTO DO PI') ?></span>
           <h2><?= e($cronograma['title'] ?? 'Cronograma do Projeto') ?></h2>
-          <p><?= e($cronograma['description'] ?? '') ?></p>
+          <?php if (!empty($cronograma['subtitle'])): ?><p class="sx-subtitle"><?= e($cronograma['subtitle']) ?></p><?php endif; ?>
+          <p class="sx-description"><?= e($cronograma['description'] ?? '') ?></p>
         </div>
 
         <div class="timeline">
@@ -483,11 +490,18 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
     ?>
       <section id="<?= e($identifier) ?>" class="custom-content-section<?= $sxClass((string)$identifier) ?>" style="padding: 5rem 1.5rem; background: #f8fafc;<?= e(sectionStyleInline($sectionStyles[$identifier] ?? sectionStyleDefaults())) ?>"<?= (($sectionStyles[$identifier]['animation'] ?? '') !== '') ? ' data-sx-anim="' . e($sectionStyles[$identifier]['animation']) . '"' : '' ?>>
         <div class="container" style="max-width: 1100px; margin: 0 auto;">
-          <?php if (!empty($customSection['badge'])): ?><span class="sx-badge" style="display:inline-block;margin-bottom:1rem;font-weight:700;letter-spacing:.08em;color:#64748b;"><?= e($customSection['badge']) ?></span><?php endif; ?>
-          <h2 style="font-size:clamp(1.8rem,4vw,3rem);font-weight:800;margin-bottom:1rem;"><?= e($customSection['title']) ?></h2>
-          <?php if (!empty($customSection['subtitle'])): ?><p style="font-size:1.1rem;color:#64748b;margin-bottom:1rem;"><?= e($customSection['subtitle']) ?></p><?php endif; ?>
-          <?php if (!empty($customSection['description'])): ?><div style="line-height:1.8;"><?= nl2br(e($customSection['description'])) ?></div><?php endif; ?>
-          <?php if (!empty($customSection['image_path'])): ?><?= pictureTag((string)$customSection['image_path'], (string)$customSection['title'], ['style' => 'max-width:100%;height:auto;margin-top:1.5rem;border-radius:1rem;']) ?><?php endif; ?>
+          <?php $customStyle = $sectionStyles[$identifier] ?? sectionStyleDefaults(); ?>
+          <div class="sx-content-layout">
+            <?php if (!empty($customSection['image_path']) && ($customStyle['content_layout'] ?? '') !== 'text'): ?>
+              <figure class="sx-content-media"><?= pictureTag((string)$customSection['image_path'], (string)$customSection['title']) ?></figure>
+            <?php endif; ?>
+            <div class="sx-content-copy">
+              <?php if (!empty($customSection['badge'])): ?><span class="sx-badge" style="display:inline-block;margin-bottom:1rem;font-weight:700;letter-spacing:.08em;color:#64748b;"><?= e($customSection['badge']) ?></span><?php endif; ?>
+              <h2 style="font-size:clamp(1.8rem,4vw,3rem);font-weight:800;margin-bottom:1rem;"><?= e($customSection['title']) ?></h2>
+              <?php if (!empty($customSection['subtitle'])): ?><p class="sx-subtitle" style="font-size:1.1rem;color:#64748b;margin-bottom:1rem;"><?= e($customSection['subtitle']) ?></p><?php endif; ?>
+              <?php if (!empty($customSection['description'])): ?><div class="sx-description" style="line-height:1.8;"><?= nl2br(e($customSection['description'])) ?></div><?php endif; ?>
+            </div>
+          </div>
           <?php foreach (($itemsBySection[$identifier] ?? []) as $item): ?>
             <article style="margin-top:1.25rem;padding:1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:1rem;">
               <?php if (!empty($item['icon'])): ?><span style="font-size:1.5rem;"> <?= e($item['icon']) ?> </span><?php endif; ?>

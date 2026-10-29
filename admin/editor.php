@@ -11,7 +11,7 @@ require_once __DIR__ . '/../includes/scheduler.php';
 require_once __DIR__ . '/../includes/section_style.php';
 
 $pdo = getPDO();
-if ($pdo) ensureSchema($pdo);
+if ($pdo) ensureSchema($pdo); 
 $schedulingEnabled = $pdo ? (getSiteSetting($pdo, 'enable_scheduling', '1') === '1') : false;
 $sectionId = max(0, (int)($_GET['id'] ?? 0));
 $isNewSection = ($sectionId === 0);
@@ -43,7 +43,7 @@ $currentUserId = (int)($_SESSION['user']['id'] ?? 0);
 if ($pdo && $section && !empty($section['id'])) {
     if (!empty($section['locked_by']) && (int)$section['locked_by'] !== $currentUserId && !empty($section['locked_at'])) {
         $lockAge = time() - strtotime($section['locked_at']);
-        if ($lockAge < 180) { // menos de 3 minutos
+        if ($lockAge < 180) { 
             $isLockedByOther = true;
             $stmtLockUser = $pdo->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
             $stmtLockUser->execute([$section['locked_by']]);
@@ -54,7 +54,6 @@ if ($pdo && $section && !empty($section['id'])) {
         $pdo->prepare("UPDATE sections SET locked_by = ?, locked_at = NOW() WHERE id = ?")->execute([$currentUserId, $sectionId]);
     }
 }
-
 if (!$section) {
     $section = [
         'id' => 0,
@@ -480,7 +479,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
         </div>
         <div>
             <label class="block text-xs font-semibold text-slate-700 mb-2">Descrição completa exibida no site</label>
-            <textarea name="description" rows="4" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="Texto completo da seção..."><?= e($section['description'] ?? '') ?></textarea>
+            <textarea id="inputDescription" name="description" rows="4" class="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition" placeholder="Texto completo da seção..."><?= e($section['description'] ?? '') ?></textarea>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -602,8 +601,22 @@ require_once __DIR__ . '/../includes/admin_header.php';
             };
             $sxColor = function (string $name, string $label, string $hint = '') use ($styleValues) {
                 $v = $styleValues[$name];
+                $siteColorDefaults = [
+                    'bg_color' => '#fafafa', 'bg_color2' => '#ffffff',
+                    'title_color' => '#111827', 'subtitle_color' => '#4b5563',
+                    'description_color' => '#64748b', 'body_color' => '#64748b',
+                    'accent_color' => '#ff2d2d', 'objectives_bg' => '#ff2d2d',
+                    'objectives_text' => '#ffffff', 'card_bg' => '#ffffff',
+                    'map_box_bg' => '#f1f5f9', 'map_box_border' => '#e5e7eb',
+                    'map_marker_color' => '#ff2d2d', 'map_marker_border' => '#ffffff',
+                    'map_info_bg' => '#ffffff', 'map_info_text' => '#111827',
+                    'map_info_border' => '#e5e7eb', 'map_info_icon_bg' => '#ff2d2d',
+                    'map_info_code_color' => '#e2e8f0',
+                    'card_text' => '#111827', 'card_border_color' => '#e5e7eb'
+                ];
+                $displayColor = $v !== '' ? $v : ($siteColorDefaults[$name] ?? '#888888');
                 echo '<div class="sxp-field sxp-color" data-field="' . e($name) . '"><span class="sxp-label">' . e($label) . '</span><div class="sxp-color-row">'
-                   . '<input type="color" class="sxp-picker" value="' . e($v !== '' ? $v : '#888888') . '" aria-label="' . e($label) . '">'
+                   . '<input type="color" class="sxp-picker" value="' . e($displayColor) . '" aria-label="' . e($label) . '">'
                    . '<input type="text" class="sxp-hex" name="sx[' . e($name) . ']" value="' . e($v) . '" placeholder="padrão" maxlength="7" spellcheck="false" autocomplete="off">'
                    . '<button type="button" class="sxp-clear" title="Voltar ao padrão do site" aria-label="Limpar ' . e($label) . '">×</button></div>'
                    . '<div class="sxp-swatches"></div>'
@@ -746,7 +759,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         <div class="sxp-wide"><?php $sxChips('hide_on', 'Visibilidade por dispositivo'); ?></div>
                     </div>
                 </div>
-
                 <div class="sxp-pane" id="sxp-pane-midia" data-pane="midia" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><p class="sxp-label">Imagem dentro do conteúdo</p><small>Esta imagem é um elemento real do layout, independente do fundo da seção.</small></div>
@@ -768,7 +780,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         <div class="sxp-wide"><?php $sxChips('content_vertical', 'Alinhamento vertical'); ?></div>
                     </div>
                 </div>
-
                 <div class="sxp-pane" id="sxp-pane-fundo" data-pane="fundo" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('bg_mode', 'Cor de fundo'); ?></div>
@@ -833,11 +844,29 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     <div class="sxp-grid">
                         <?php
                             $sxColor('title_color', 'Cor do título');
-                            $sxColor('body_color', 'Cor do texto');
+                            $sxColor('subtitle_color', 'Cor do subtítulo', 'Usada somente quando a seção tiver um subtítulo.');
+                            $sxColor('description_color', 'Cor da descrição', 'Texto descritivo abaixo do título.');
+                            $sxColor('body_color', 'Cor do texto geral', 'Parágrafos e listas fora dos cards.');
                             $sxColor('accent_color', 'Cor de destaque', 'Selo, palavra destacada, detalhe sob o título e botão principal.');
+                            if (($section['identifier'] ?? '') === 'sobre') {
+                                $sxColor('objectives_bg', 'Fundo de Objetivos e Competências', 'Altera o quadro vermelho desta seção.');
+                                $sxColor('objectives_text', 'Texto de Objetivos e Competências', 'Altera títulos, itens e marcações deste quadro.');
+                            }
+                            if (($section['identifier'] ?? '') === 'mapa') {
+                                $sxColor('map_box_bg', 'Fundo da moldura do mapa');
+                                $sxColor('map_box_border', 'Borda da moldura do mapa');
+                                $sxColor('map_marker_color', 'Cor dos marcadores');
+                                $sxColor('map_marker_border', 'Borda dos marcadores');
+                                $sxColor('map_info_bg', 'Fundo do cartão de informações');
+                                $sxColor('map_info_text', 'Texto do cartão de informações');
+                                $sxColor('map_info_border', 'Bordas do cartão de informações');
+                                $sxColor('map_info_icon_bg', 'Fundo do ícone de informações');
+                                $sxColor('map_info_code_color', 'Cor do código do país (TN)');
+                            }
                         ?>
                     </div>
                 </div>
+
                 <div class="sxp-pane" id="sxp-pane-cards" data-pane="cards" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('card_style', 'Estilo dos cards'); ?></div>
@@ -849,6 +878,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                         <div class="sxp-wide"><?php $sxChips('btn_radius', 'Formato dos botões'); ?></div>
                     </div>
                 </div>
+
                 <div class="sxp-pane" id="sxp-pane-efeitos" data-pane="efeitos" role="tabpanel" hidden>
                     <div class="sxp-grid">
                         <div class="sxp-wide"><?php $sxChips('animation', 'Animação ao rolar a página', 'Respeita a opção "reduzir movimento" do sistema do visitante.'); ?></div>
@@ -907,7 +937,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
             </button>
         </div>
     </div>
-
     <div class="lg:col-span-5 min-w-0 flex flex-col lg:sticky lg:top-6">
         <div class="bg-white rounded-t-3xl border border-b-0 border-slate-200 p-4 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -922,7 +951,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 <button type="button" id="btnPreviewTablet" onclick="setPreviewWidth('tablet')" class="px-3 py-1 rounded-lg text-slate-500 hover:text-slate-800 transition">Tablet</button>
             </div>
         </div>
-
         <div id="previewMockupWrapper" class="w-full transition-all duration-300 flex justify-center">
             <?php 
                 $activeBg = !empty($section['video_path']) ? $section['video_path'] : ($styleValues['bg_image'] ?? '');
@@ -939,6 +967,67 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     <span class="font-bold text-sm tracking-tight text-white">Tunísia CMS</span>
                     <span class="text-[10px] bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 px-2.5 py-0.5 rounded-full font-medium">Seção: #<?= e($section['identifier']) ?></span>
                 </div>
+                <?php if (($section['identifier'] ?? '') === 'mapa'): ?>
+                <div id="mapPreview" class="relative my-auto py-6" style="z-index:2;color:#111827">
+                    <div style="text-align:center;margin-bottom:22px">
+                        <span id="liveBadge" style="display:inline-block;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ff2d2d"><?= e($section['badge'] ?? 'EXPLORE A TUNÍSIA') ?></span>
+                        <h3 id="liveTitle" style="font-size:27px;line-height:1.15;font-weight:800;margin:10px 0;color:#111827"><?= e($section['title'] ?: 'Mapa Interativo') ?></h3>
+                        <p id="liveSubtitle" style="font-size:11px;margin:0 0 10px;color:#4b5563"><?= e($section['subtitle'] ?? '') ?></p>
+                        <p id="liveDescription" style="max-width:390px;margin:auto;font-size:12px;line-height:1.55;color:#64748b"><?= e($section['description'] ?? '') ?></p>
+                    </div>
+                    <div id="mapPreviewGrid" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr);gap:18px;align-items:start">
+                        <div id="mapPreviewBox" style="position:relative;aspect-ratio:16/10;background:#f1f5f9;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;padding:16px">
+                            <img id="liveContentImage" src="<?= !empty($section['image_path']) ? e(SITE_URL . '/' . ltrim((string)$section['image_path'], '/')) : '' ?>" alt="Mapa" style="width:100%;height:100%;object-fit:contain">
+                            <?php foreach ($sectionItems as $item): if (($item['item_type'] ?? '') !== 'map_marker') continue; $coords = explode(',', (string)($item['link_url'] ?? '40%,50%')); ?>
+                                <i class="map-preview-marker" style="position:absolute;top:<?= e(trim($coords[0] ?? '40%')) ?>;left:<?= e(trim($coords[1] ?? '50%')) ?>;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff2d2d;transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(255,45,45,.2)"></i>
+                            <?php endforeach; ?>
+                        </div>
+                        <div id="mapPreviewInfo" style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:15px;box-shadow:0 8px 18px rgba(15,23,42,.08)">
+                            <div style="display:flex;gap:8px;align-items:center;margin-bottom:11px"><b id="mapPreviewIcon" style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#ff2d2d;color:#fff">🌍</b><div><strong style="font-size:12px">Informações Gerais</strong><br><span style="font-size:10px;color:#64748b">República da Tunísia</span></div></div>
+                            <div class="map-preview-row"><span>👥 População</span><b>12,3 mi</b></div><div class="map-preview-row"><span>🗣️ Idioma</span><b>Árabe</b></div><div class="map-preview-row"><span>💲 Moeda</span><b>Dinar</b></div><div class="map-preview-row"><span>🌍 Continente</span><b>África</b></div><div id="mapPreviewCode" style="text-align:center;margin-top:12px;font-size:25px;font-weight:800;color:#e2e8f0">TN</div>
+                        </div>
+                    </div>
+                </div>
+                <style>#mapPreviewInfo .map-preview-row{display:flex;justify-content:space-between;gap:6px;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:9px}#mapPreviewInfo .map-preview-row span{color:#64748b}#mapPreviewInfo .map-preview-row b{font-size:9px}</style>
+                <?php elseif (($section['identifier'] ?? '') === 'cultura'): ?>
+                <div id="culturalPreview" class="relative my-auto py-6" style="z-index:2;color:#111827;width:100%">
+                    <div style="text-align:center;margin-bottom:24px">
+                        <span id="liveBadge" style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ff2d2d"><?= e($section['badge'] ?? 'SEMANA CULTURAL') ?></span>
+                        <h2 id="liveTitle" style="font-size:28px;font-weight:800;margin:10px 0;color:#111827;line-height:1.2"><?= e($section['title'] ?: 'Celebrando a Tunísia') ?></h2>
+                        <p id="liveSubtitle" style="font-size:13px;margin:6px auto 0;color:#4b5563;max-width:500px"><?= e($section['subtitle'] ?? '') ?></p>
+                        <p id="liveDescription" style="font-size:12px;margin:8px auto 0;color:#64748b;max-width:560px;line-height:1.6"><?= e($section['description'] ?? '') ?></p>
+                    </div>
+
+                    <div id="culturalPreviewGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;width:100%">
+                        <?php 
+                        $culturalCards = array_filter($sectionItems, fn($i) => ($i['item_type'] ?? '') === 'cultural_card');
+                        if (empty($culturalCards)) {
+                            $culturalCards = [
+                                ['title' => 'Gastronomia', 'description' => 'Cuscuz, tajine, brik e doces tradicionais', 'subtitle' => 'Degustação de pratos típicos tunisianos', 'icon' => '🍴', 'image_path' => 'assets/img/img01.png'],
+                                ['title' => 'Música', 'description' => 'Apresentação de músicas e danças tradicionais', 'subtitle' => 'Ritmos mediterrâneos e instrumentos árabes', 'icon' => '🎵', 'image_path' => 'assets/img/img02.png'],
+                                ['title' => 'História', 'description' => 'Exposição sobre a rica história tunisiana', 'subtitle' => 'De Cartago aos dias atuais', 'icon' => '📖', 'image_path' => 'assets/img/img03.png']
+                            ];
+                        }
+                        foreach ($culturalCards as $cIdx => $cItem): 
+                            $cImg = !empty($cItem['image_path']) ? SITE_URL . '/' . ltrim((string)$cItem['image_path'], '/') : '';
+                        ?>
+                        <div class="cultural-preview-card" data-cultural-index="<?= $cIdx ?>" style="background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;box-shadow:0 4px 14px rgba(15,23,42,.06);display:flex;flex-direction:column;transition:transform .3s ease">
+                            <div style="position:relative;height:120px;background:#f1f5f9;overflow:visible">
+                                <img class="cultural-preview-img" src="<?= e($cImg) ?>" alt="<?= e($cItem['title'] ?? '') ?>" style="width:100%;height:100%;object-fit:cover;display:<?= $cImg ? 'block' : 'none' ?>">
+                                <div class="cultural-preview-icon" style="position:absolute;bottom:-14px;left:14px;width:34px;height:34px;background:#ffffff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.04);z-index:2">
+                                    <?= e($cItem['icon'] ?? '✨') ?>
+                                </div>
+                            </div>
+                            <div style="padding:22px 14px 16px;display:flex;flex-direction:column;flex:1">
+                                <h3 class="cultural-preview-title" style="font-size:15px;font-weight:700;margin:0 0 6px;color:#111827"><?= e($cItem['title'] ?? '') ?></h3>
+                                <p class="cultural-preview-desc" style="font-size:11px;color:#4b5563;margin:0 0 10px;line-height:1.5;flex:1"><?= e($cItem['description'] ?? '') ?></p>
+                                <span class="cultural-preview-sub" style="font-size:10px;color:#111827;font-weight:600"><?= e($cItem['subtitle'] ?? '') ?></span>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php else: ?>
                 <div id="liveContentLayout" class="relative my-auto py-8 flex flex-col gap-5" style="z-index: 2;">
                     <img id="liveContentImage" src="<?= !empty($section['image_path']) ? e(SITE_URL . '/' . ltrim((string)$section['image_path'], '/')) : '' ?>" alt="" class="hidden w-full max-h-52 object-cover rounded-xl">
                     <div id="liveContentCopy">
@@ -959,6 +1048,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 <div class="relative text-[10px] text-white/50 border-t border-white/10 pt-3 flex justify-between items-center" style="z-index: 2;">
                     <span>Pré-visualização ao vivo</span>
                     <span>Modo de Edição</span>
@@ -986,7 +1076,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
     const T_LEAD = { tight: '1.05', normal: '1.25', relaxed: '1.5' };
     const B_LEAD = { tight: '1.4', normal: '1.7', relaxed: '2.05' };
     const BTN_R = { sq: '4px', md: '10px', pill: '999px' };
-    const PALETTE = ['#0f172a', '#ffffff', '#ef4444', '#f59e0b', '#10b981', '#0ea5e9', '#6366f1', '#ec4899'];
+    const PALETTE = ['#ff2d2d', '#e02424', '#111827', '#64748b', '#4b5563', '#ffffff', '#e5e7eb', '#fafafa', '#f3f4f6', '#f1f5f9', '#e2e8f0', '#94a3b8', '#cbd5e1'];
 
     const PRESETS = {
         clean:     { text_align: 'center', bg_mode: 'solid', bg_color: '#ffffff', title_color: '#0f172a', body_color: '#475569', accent_color: '#4f46e5', title_weight: '800', title_decor: 'line' },
@@ -1060,7 +1150,6 @@ require_once __DIR__ . '/../includes/admin_header.php';
         if (!tabName) return;
         showTab(tabName);
     }));
-
     tabs.forEach((t, index) => t.addEventListener('keydown', (event) => {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
@@ -1109,13 +1198,13 @@ require_once __DIR__ . '/../includes/admin_header.php';
     function updateContrast() {
         try {
             const mode = val('bg_mode'), bg1 = val('bg_color'), bg2 = val('bg_color2') || bg1;
-            const title = val('title_color'), body = val('body_color');
+            const title = val('title_color'), subtitle = val('subtitle_color'), description = val('description_color'), body = val('body_color');
             if (contrastBox) contrastBox.className = 'hint';
             if (val('bg_image')) {
                 if (contrastBox) contrastBox.textContent = 'Com mídia de fundo, confira a leitura no preview.';
                 return;
             }
-            if (!title && !body) { if (contrastBox) contrastBox.textContent = ''; return; }
+            if (!title && !subtitle && !description && !body) { if (contrastBox) contrastBox.textContent = ''; return; }
             if (!mode || !bg1) {
                 if (contrastBox) contrastBox.textContent = 'Dica: ao mudar a cor do texto, defina também a cor do fundo.';
                 return;
@@ -1192,7 +1281,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
             if (mode === 'solid' && c1) layers.push(c1);
             else if (mode === 'gradient' && c1) layers.push('linear-gradient(' + (DIRS[val('bg_direction')] || 'to bottom') + ',' + c1 + ',' + c2 + ')');
             
-            card.style.background = layers.join(',');
+            card.style.background = layers.join(',') || '#ffffff';
             card.style.backgroundSize = img && !isVideoFile ? 'cover' : '';
             card.style.backgroundPosition = img && !isVideoFile ? 'center' : '';
 
@@ -1200,6 +1289,52 @@ require_once __DIR__ . '/../includes/admin_header.php';
             if (tf) ensureFont(tf);
             if (bf) ensureFont(bf);
             const accent = val('accent_color');
+            if (accent) {
+                const liveBadgeEl = document.getElementById('liveBadge');
+                if (liveBadgeEl) liveBadgeEl.style.color = accent;
+            }
+
+            const culturalPreview = document.getElementById('culturalPreview');
+            if (culturalPreview) {
+                const cCards = culturalPreview.querySelectorAll('.cultural-preview-card');
+                const cardBg = val('card_bg') || '#ffffff';
+                const cardText = val('card_text') || '#111827';
+                const cardBorder = val('card_border_color') || '#e5e7eb';
+                const cardStyle = val('card_style');
+                const cardRadius = val('card_radius');
+                const cardShadow = val('card_shadow');
+                const cardHover = val('card_hover');
+                const cardBorderWidth = val('card_border_width');
+
+                const radMap = { sq: '4px', md: '16px', lg: '24px', xl: '32px' };
+                const borderWMap = { none: '0px', thin: '1px', medium: '2px', thick: '4px' };
+                const shadowMap = {
+                    none: 'none',
+                    soft: '0 4px 14px rgba(15,23,42,.06)',
+                    medium: '0 10px 24px rgba(15,23,42,.12)',
+                    strong: '0 20px 38px rgba(15,23,42,.22)'
+                };
+
+                cCards.forEach(cCard => {
+                    cCard.style.background = cardStyle === 'glass' ? 'rgba(255,255,255,0.7)' : cardBg;
+                    if (cardRadius && radMap[cardRadius]) cCard.style.borderRadius = radMap[cardRadius];
+                    if (cardBorderWidth && borderWMap[cardBorderWidth]) cCard.style.borderWidth = borderWMap[cardBorderWidth];
+                    cCard.style.borderColor = cardStyle === 'accent' ? (accent || '#ff2d2d') : (cardStyle === 'flat' ? 'transparent' : cardBorder);
+                    cCard.style.boxShadow = cardStyle === 'flat' ? 'none' : (shadowMap[cardShadow] || shadowMap.soft);
+
+                    const titleEl = cCard.querySelector('.cultural-preview-title');
+                    const descEl = cCard.querySelector('.cultural-preview-desc');
+                    const subEl = cCard.querySelector('.cultural-preview-sub');
+                    const iconEl = cCard.querySelector('.cultural-preview-icon');
+
+                    if (titleEl) titleEl.style.color = cardText;
+                    if (descEl) descEl.style.color = val('body_color') || '#4b5563';
+                    if (subEl) subEl.style.color = accent || '#ff2d2d';
+                    if (iconEl && accent && cardStyle === 'accent') {
+                        iconEl.style.borderColor = accent;
+                    }
+                });
+            }
 
             if (liveTitle) {
                 const size = TITLE_PX[val('title_size')];
@@ -1223,7 +1358,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                     liveTitle.style.webkitBackgroundClip = '';
                     liveTitle.style.backgroundClip = '';
                     liveTitle.style.webkitTextFillColor = '';
-                    liveTitle.style.color = val('title_color');
+                    liveTitle.style.color = val('title_color') || '#111827';
                 }
             }
             if (liveDecor) {
@@ -1244,17 +1379,17 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 liveSub.style.fontFamily = (bf && bf !== 'sans' && FONTS[bf]) ? FONTS[bf].stack : '';
                 liveSub.style.fontSize = BODY_PX[val('body_size')] ? BODY_PX[val('body_size')] + 'px' : '';
                 liveSub.style.lineHeight = B_LEAD[val('body_leading')] || '';
-                liveSub.style.color = val('body_color');
+                liveSub.style.color = val('subtitle_color') || val('description_color') || val('body_color') || '#64748b';
                 const al = val('text_align');
                 liveSub.style.marginLeft = (al === 'center' || al === 'right') ? 'auto' : '';
                 liveSub.style.marginRight = (al === 'center') ? 'auto' : '';
             }
             if (liveBadge) {
-                liveBadge.style.color = accent;
+                liveBadge.style.color = accent || '#ff2d2d';
                 liveBadge.style.display = val('hide_badge') === '1' ? 'none' : '';
             }
             [liveBtn1, liveBtn2].forEach(b => { if (b) b.style.borderRadius = BTN_R[val('btn_radius')] || ''; });
-            if (liveBtn1) liveBtn1.style.background = accent;
+            if (liveBtn1) liveBtn1.style.background = accent || '#ff2d2d';
             if (liveTitle) liveTitle.style.display = val('hide_title') === '1' ? 'none' : '';
             if (liveSub) liveSub.style.display = val('hide_description') === '1' ? 'none' : '';
             if (liveBtn1) liveBtn1.parentElement.style.display = val('hide_buttons') === '1' ? 'none' : '';
@@ -1289,6 +1424,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
             console.error("Erro em refresh:", err);
         }
     }
+    window.triggerSxUpdate = refresh;
 
     panel.addEventListener('input', refresh);
     panel.addEventListener('change', refresh);
@@ -1319,7 +1455,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 if (v && v[0] !== '#') { v = '#' + v; hex.value = v; }
                 if (/^#[0-9a-f]{6}$/i.test(v)) picker.value = v;
             });
-        }
+        }   
         const clearBtn = wrap.querySelector('.sxp-clear');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => { if (hex) hex.value = ''; refresh(); });
@@ -1352,15 +1488,19 @@ require_once __DIR__ . '/../includes/admin_header.php';
 <script>
     const inputTitle = document.getElementById('inputTitle');
     const inputSubtitle = document.getElementById('inputSubtitle');
+    const inputDescription = document.getElementById('inputDescription');
     const inputBadge = document.getElementById('inputBadge');
     const inputBtn1 = document.getElementById('inputBtn1Text');
     const inputBtn2 = document.getElementById('inputBtn2Text');
+
     const liveTitle = document.getElementById('liveTitle');
     const liveSubtitle = document.getElementById('liveSubtitle');
+    const liveDescription = document.getElementById('liveDescription');
     const liveBadge = document.getElementById('liveBadge');
     const liveBtn1 = document.getElementById('liveBtn1');
     const liveBtn2 = document.getElementById('liveBtn2');
     const headerTitle = document.getElementById('headerTitle');
+
     (function () {
         const metaEl = document.getElementById('itemTypeMeta');
         if (!metaEl) return;
@@ -1545,8 +1685,9 @@ require_once __DIR__ . '/../includes/admin_header.php';
                 complete.classList.toggle('ready', ready);
             }
 
-            select.addEventListener('change', applyType);
-            Object.keys(inputs).forEach(k => { if (k !== 'type') inputs[k].addEventListener('input', () => { refreshSummary(); updateStatus(); }); });
+            select.addEventListener('change', () => { applyType(); syncCulturalPreview(); });
+            titleInput.addEventListener('input', () => { refreshSummary(); updateStatus(); syncCulturalPreview(); });
+            Object.keys(inputs).forEach(k => { if (k !== 'type') inputs[k].addEventListener('input', () => { refreshSummary(); updateStatus(); syncCulturalPreview(); }); });
 
             function setOpen(open) {
                 row.classList.toggle('is-open', open);
@@ -1634,6 +1775,55 @@ require_once __DIR__ . '/../includes/admin_header.php';
             pill('Tipos:', String(types), '');
         }
 
+        function syncCulturalPreview() {
+            const culturalGrid = document.getElementById('culturalPreviewGrid');
+            if (!culturalGrid) return;
+            const cRows = rows().filter(r => r.dataset.type === 'cultural_card');
+            culturalGrid.replaceChildren();
+            cRows.forEach((r, idx) => {
+                const getVal = name => {
+                    const el = r.querySelector('[name="' + name + '"]');
+                    return el ? el.value.trim() : '';
+                };
+                const title = getVal('item_title[]') || 'Item ' + (idx + 1);
+                const desc = getVal('item_description[]');
+                const sub = getVal('item_subtitle[]');
+                const icon = getVal('item_icon[]') || '✨';
+                const img = getVal('item_image_path[]');
+                const fullImg = img ? (/^(https?:)?\/\//.test(img) ? img : BASE + '/' + img.replace(/^\/+/, '')) : '';
+
+                const cardEl = el('div', {
+                    class: 'cultural-preview-card',
+                    'data-cultural-index': String(idx),
+                    style: 'background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;box-shadow:0 4px 14px rgba(15,23,42,.06);display:flex;flex-direction:column;transition:transform .3s ease'
+                });
+
+                const mediaBox = el('div', { style: 'position:relative;height:120px;background:#f1f5f9;overflow:visible' });
+                const imgEl = el('img', {
+                    class: 'cultural-preview-img',
+                    src: fullImg,
+                    alt: title,
+                    style: 'width:100%;height:100%;object-fit:cover;' + (fullImg ? 'display:block;' : 'display:none;')
+                });
+                const iconEl = el('div', {
+                    class: 'cultural-preview-icon',
+                    style: 'position:absolute;bottom:-14px;left:14px;width:34px;height:34px;background:#ffffff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.04);z-index:2'
+                }, icon);
+
+                mediaBox.append(imgEl, iconEl);
+
+                const bodyBox = el('div', { style: 'padding:22px 14px 16px;display:flex;flex-direction:column;flex:1' });
+                const h3 = el('h3', { class: 'cultural-preview-title', style: 'font-size:15px;font-weight:700;margin:0 0 6px;color:#111827' }, title);
+                const p = el('p', { class: 'cultural-preview-desc', style: 'font-size:11px;color:#4b5563;margin:0 0 10px;line-height:1.5;flex:1' }, desc);
+                const span = el('span', { class: 'cultural-preview-sub', style: 'font-size:10px;color:#111827;font-weight:600' }, sub);
+
+                bodyBox.append(h3, p, span);
+                cardEl.append(mediaBox, bodyBox);
+                culturalGrid.appendChild(cardEl);
+            });
+            if (typeof window.triggerSxUpdate === 'function') window.triggerSxUpdate();
+        }
+
         function refresh() {
             rows().forEach(r => { r.hidden = !(activeFilter === 'all' || r.dataset.type === activeFilter); });
             renderFilters();
@@ -1647,6 +1837,7 @@ require_once __DIR__ . '/../includes/admin_header.php';
             if (emptyEl) emptyEl.hidden = rows().length > 0;
             updateStatus();
             updateToggleAll();
+            syncCulturalPreview();
         }
 
         if (list) {
@@ -1693,6 +1884,12 @@ require_once __DIR__ . '/../includes/admin_header.php';
     if (inputSubtitle && liveSubtitle) {
         inputSubtitle.addEventListener('input', () => {
             liveSubtitle.textContent = inputSubtitle.value.trim() || 'Subtítulo / Descrição da seção...';
+        });
+    }
+
+    if (inputDescription && liveDescription) {
+        inputDescription.addEventListener('input', () => {
+            liveDescription.textContent = inputDescription.value.trim() || 'Descrição da seção...';
         });
     }
 

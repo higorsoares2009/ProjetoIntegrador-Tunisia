@@ -60,7 +60,7 @@ function sectionStyleChoices(): array {
     ];
 }
 
-const SX_COLOR_FIELDS = ['bg_color', 'bg_color2', 'title_color', 'body_color', 'accent_color', 'card_bg', 'card_text', 'card_border_color'];
+const SX_COLOR_FIELDS = ['bg_color', 'bg_color2', 'title_color', 'subtitle_color', 'description_color', 'body_color', 'accent_color', 'objectives_bg', 'objectives_text', 'map_box_bg', 'map_box_border', 'map_marker_color', 'map_marker_border', 'map_info_bg', 'map_info_text', 'map_info_border', 'map_info_icon_bg', 'map_info_code_color', 'card_bg', 'card_text', 'card_border_color'];
 const SX_FONT_FIELDS  = ['title_font', 'body_font'];
 
 function sectionStyleDefaults(): array {
@@ -99,12 +99,12 @@ function sanitizeSectionStyle($raw): array {$out = sectionStyleDefaults();
     $out['hide_description'] = !empty($raw['hide_description']) ? '1' : '';
     $out['hide_buttons'] = !empty($raw['hide_buttons']) ? '1' : '';
     $out['hide_media'] = !empty($raw['hide_media']) ? '1' : '';
-    $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';      
-    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : ''; 
-
+    $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';       
+    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : '';  
     $img = isset($raw['bg_image']) && is_scalar($raw['bg_image']) ? trim((string)$raw['bg_image']) : '';$out['bg_image'] = sxValidImagePath($img) ?$img : '';
     $overlay = (isset($raw['bg_overlay']) && is_numeric($raw['bg_overlay'])) ? (int)$raw['bg_overlay'] : -1;
     $out['bg_overlay'] = ($out['bg_image'] !== '' && $overlay >= 0 &&$overlay <= 80) ? (string)((int)(round($overlay / 5) * 5)) : '';$out['bg_fixed'] = ($out['bg_image'] !== '' && !empty($raw['bg_fixed'])) ? '1' : '';
+    // Degradê só faz sentido com cor inicial; sem ela, volta ao padrão do site.
     if ($out['bg_mode'] !== '' && $out['bg_color'] === '')$out['bg_mode'] = '';
     if ($out['bg_mode'] === '') {$out['bg_color'] = ''; $out['bg_color2'] = '';$out['bg_direction'] = 'down'; }
     if ($out['bg_mode'] === 'solid') {$out['bg_color2'] = ''; }
@@ -139,8 +139,15 @@ function sectionStyleClasses(array $s): string {
     if (isset($s['bg_image']) && $s['bg_image'] !== '')$c[] = 'sx-bgimg';
     if (isset($s['bg_fixed']) && $s['bg_fixed'] === '1')$c[] = 'sx-bgfix';
     if (isset($s['title_color']) && $s['title_color'] !== '')$c[] = 'sx-tc';
+    if (isset($s['subtitle_color']) && $s['subtitle_color'] !== '')$c[] = 'sx-stc';
+    if (isset($s['description_color']) && $s['description_color'] !== '')$c[] = 'sx-dc';
     if (isset($s['body_color']) && $s['body_color'] !== '')$c[] = 'sx-bc';
     if (isset($s['accent_color']) && $s['accent_color'] !== '')$c[] = 'sx-ac';
+    if (isset($s['objectives_bg']) && $s['objectives_bg'] !== '')$c[] = 'sx-ob';
+    if (isset($s['objectives_text']) && $s['objectives_text'] !== '')$c[] = 'sx-ot';
+    foreach (['map_box_bg' => 'sx-mbb', 'map_box_border' => 'sx-mbbr', 'map_marker_color' => 'sx-mmc', 'map_marker_border' => 'sx-mmborder', 'map_info_bg' => 'sx-mib', 'map_info_text' => 'sx-mit', 'map_info_border' => 'sx-mibr', 'map_info_icon_bg' => 'sx-miib', 'map_info_code_color' => 'sx-micc'] as $field => $class) {
+        if (isset($s[$field]) && $s[$field] !== '') $c[] = $class;
+    }
     if (isset($s['card_bg']) && $s['card_bg'] !== '')$c[] = 'sx-cb';
     if (isset($s['card_text']) && $s['card_text'] !== '')$c[] = 'sx-ct';
     if (isset($s['card_border_color']) && $s['card_border_color'] !== '')$c[] = 'sx-cborder';
@@ -162,11 +169,12 @@ function sectionStyleBgValue(array $s): string {$layers = [];
         $alpha = (isset($s['bg_overlay']) && $s['bg_overlay'] === '' ? 0 : (int)($s['bg_overlay'] ?? 0)) / 100;
         if ($alpha > 0) {$a = number_format($alpha, 2, '.', '');$layers[] = "linear-gradient(rgba(0,0,0,{$a}),rgba(0,0,0,{$a}))";
         }
+        // Caminho a partir da raiz do site: URL relativa em variável CSS seria resolvida contra o arquivo .css.
         $base = defined('SITE_URL') ? str_replace(["'", '"', '(', ')', ' ', '\\'], '', (string)SITE_URL) : '';
         $layers[] = "url('{$base}/{$path}')";
     }
     if (isset($s['bg_mode']) && $s['bg_mode'] === 'solid' && !empty($s['bg_color'])) {
-        $layers[] =$s['bg_color']; 
+        $layers[] =$s['bg_color']; // cor sólida precisa ser a última camada
     } elseif (isset($s['bg_mode']) && $s['bg_mode'] === 'gradient' && !empty($s['bg_color'])) {
         $dir = ['down' => 'to bottom', 'right' => 'to right', 'diag' => 'to bottom right', 'up' => 'to top'][$s['bg_direction'] ?? 'down'] ?? 'to bottom';
         $layers[] = 'linear-gradient(' .$dir . ',' . $s['bg_color'] . ',' . (!empty($s['bg_color2']) ? $s['bg_color2'] :$s['bg_color']) . ')';
@@ -178,8 +186,15 @@ function sectionStyleInline(array $s): string {$v = [];
     $bg = sectionStyleBgValue($s);
     if ($bg !== '') $v[] = '--sx-bg:' .$bg;
     if (!empty($s['title_color']))  $v[] = '--sx-title-color:' .$s['title_color'];
+    if (!empty($s['subtitle_color'])) $v[] = '--sx-subtitle-color:' .$s['subtitle_color'];
+    if (!empty($s['description_color'])) $v[] = '--sx-description-color:' .$s['description_color'];
     if (!empty($s['body_color']))   $v[] = '--sx-body-color:' .$s['body_color'];
     if (!empty($s['accent_color'])) $v[] = '--sx-accent:' .$s['accent_color'];
+    if (!empty($s['objectives_bg'])) $v[] = '--sx-objectives-bg:' .$s['objectives_bg'];
+    if (!empty($s['objectives_text'])) $v[] = '--sx-objectives-text:' .$s['objectives_text'];
+    foreach (['map_box_bg' => '--sx-map-box-bg', 'map_box_border' => '--sx-map-box-border', 'map_marker_color' => '--sx-map-marker', 'map_marker_border' => '--sx-map-marker-border', 'map_info_bg' => '--sx-map-info-bg', 'map_info_text' => '--sx-map-info-text', 'map_info_border' => '--sx-map-info-border', 'map_info_icon_bg' => '--sx-map-info-icon-bg', 'map_info_code_color' => '--sx-map-info-code'] as $field => $var) {
+        if (!empty($s[$field])) $v[] = $var . ':' . $s[$field];
+    }
     if (!empty($s['card_bg']))      $v[] = '--sx-card-bg:' .$s['card_bg'];
     if (!empty($s['card_text']))    $v[] = '--sx-card-text:' .$s['card_text'];
     if (!empty($s['card_border_color'])) $v[] = '--sx-card-border:' .$s['card_border_color'];
