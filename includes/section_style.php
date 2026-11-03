@@ -3,7 +3,6 @@
  * Aparência e layout por seção (alinhamento, largura, espaçamento, fundo, fontes, tamanhos,
  * cores, cards e animação).
  */
-
 const SX_FONTS = [
     'sans'        => ['label' => 'Sans padrão do site',   'stack' => 'inherit',                                           'google' => null],
     'system'    => ['label' => 'Sistema (rápida)',      'stack' => "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", 'google' => null],
@@ -20,7 +19,6 @@ const SX_FONTS = [
     'robotoslab'=> ['label' => 'Roboto Slab (técnica)', 'stack' => "'Roboto Slab', serif",          'google' => 'Roboto+Slab:wght@400;600;700;800;900'],
     'dancing'   => ['label' => 'Dancing Script (manuscrita)', 'stack' => "'Dancing Script', cursive", 'google' => 'Dancing+Script:wght@400;600;700'],
 ];
-
 function sectionStyleChoices(): array {
     return [
         'text_align'      => ['' => 'Padrão', 'left' => 'Esquerda', 'center' => 'Centro', 'right' => 'Direita'],
@@ -60,7 +58,28 @@ function sectionStyleChoices(): array {
     ];
 }
 
-const SX_COLOR_FIELDS = ['bg_color', 'bg_color2', 'title_color', 'subtitle_color', 'description_color', 'body_color', 'accent_color', 'objectives_bg', 'objectives_text', 'map_box_bg', 'map_box_border', 'map_marker_color', 'map_marker_border', 'map_info_bg', 'map_info_text', 'map_info_border', 'map_info_icon_bg', 'map_info_code_color', 'card_bg', 'card_text', 'card_border_color'];
+const SX_COLOR_FIELDS = ['bg_color', 'bg_color2', 'title_color', 'subtitle_color', 'description_color', 'body_color', 'accent_color', 'objectives_bg', 'objectives_text', 'map_box_bg', 'map_box_border', 'map_marker_color', 'map_marker_border', 'map_info_bg', 'map_info_text', 'map_info_border', 'map_info_icon_bg', 'map_info_code_color', 'card_bg', 'card_text', 'card_border_color',
+    'badge_color', 'badge_bg', 'highlight_color', 'list_marker_color',
+    'btn_primary_bg', 'btn_primary_text', 'btn_secondary_bg', 'btn_secondary_text', 'btn_secondary_border',
+    'card_title_color', 'card_desc_color', 'card_subtitle_color', 'card_icon_bg',
+    'timeline_color', 'stat_number_color'];
+const SX_EXTRA_COLORS = [
+    'badge_color'          => ['sx-bdc',  '--sx-badge-color'],
+    'badge_bg'             => ['sx-bdb',  '--sx-badge-bg'],
+    'highlight_color'      => ['sx-hlc',  '--sx-highlight'],
+    'list_marker_color'    => ['sx-lmc',  '--sx-list-marker'],
+    'btn_primary_bg'       => ['sx-bpb',  '--sx-btn1-bg'],
+    'btn_primary_text'     => ['sx-bpt',  '--sx-btn1-text'],
+    'btn_secondary_bg'     => ['sx-bsb',  '--sx-btn2-bg'],
+    'btn_secondary_text'   => ['sx-bst',  '--sx-btn2-text'],
+    'btn_secondary_border' => ['sx-bsbr', '--sx-btn2-border'],
+    'card_title_color'     => ['sx-ctt',  '--sx-card-title'],
+    'card_desc_color'      => ['sx-cdc',  '--sx-card-desc'],
+    'card_subtitle_color'  => ['sx-csc',  '--sx-card-sub'],
+    'card_icon_bg'         => ['sx-cib',  '--sx-card-icon-bg'],
+    'timeline_color'       => ['sx-tlc',  '--sx-timeline'],
+    'stat_number_color'    => ['sx-snc',  '--sx-stat-number'],
+];
 const SX_FONT_FIELDS  = ['title_font', 'body_font'];
 
 function sectionStyleDefaults(): array {
@@ -99,12 +118,11 @@ function sanitizeSectionStyle($raw): array {$out = sectionStyleDefaults();
     $out['hide_description'] = !empty($raw['hide_description']) ? '1' : '';
     $out['hide_buttons'] = !empty($raw['hide_buttons']) ? '1' : '';
     $out['hide_media'] = !empty($raw['hide_media']) ? '1' : '';
-    $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';       
-    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : '';  
+    $out['hide_video'] = !empty($raw['hide_video']) ? '1' : '';      
+    $out['hide_overlay'] = !empty($raw['hide_overlay']) ? '1' : '';   
     $img = isset($raw['bg_image']) && is_scalar($raw['bg_image']) ? trim((string)$raw['bg_image']) : '';$out['bg_image'] = sxValidImagePath($img) ?$img : '';
     $overlay = (isset($raw['bg_overlay']) && is_numeric($raw['bg_overlay'])) ? (int)$raw['bg_overlay'] : -1;
     $out['bg_overlay'] = ($out['bg_image'] !== '' && $overlay >= 0 &&$overlay <= 80) ? (string)((int)(round($overlay / 5) * 5)) : '';$out['bg_fixed'] = ($out['bg_image'] !== '' && !empty($raw['bg_fixed'])) ? '1' : '';
-    // Degradê só faz sentido com cor inicial; sem ela, volta ao padrão do site.
     if ($out['bg_mode'] !== '' && $out['bg_color'] === '')$out['bg_mode'] = '';
     if ($out['bg_mode'] === '') {$out['bg_color'] = ''; $out['bg_color2'] = '';$out['bg_direction'] = 'down'; }
     if ($out['bg_mode'] === 'solid') {$out['bg_color2'] = ''; }
@@ -119,7 +137,6 @@ function decodeSectionStyle(?string $json): array {
 function sectionStyleIsEmpty(array $style): bool {
     return $style === sectionStyleDefaults();
 }
-
 function sectionStyleClasses(array $s): string {
     if (sectionStyleIsEmpty($s)) return '';$c = ['sx'];
     foreach ([
@@ -148,6 +165,9 @@ function sectionStyleClasses(array $s): string {
     foreach (['map_box_bg' => 'sx-mbb', 'map_box_border' => 'sx-mbbr', 'map_marker_color' => 'sx-mmc', 'map_marker_border' => 'sx-mmborder', 'map_info_bg' => 'sx-mib', 'map_info_text' => 'sx-mit', 'map_info_border' => 'sx-mibr', 'map_info_icon_bg' => 'sx-miib', 'map_info_code_color' => 'sx-micc'] as $field => $class) {
         if (isset($s[$field]) && $s[$field] !== '') $c[] = $class;
     }
+    foreach (SX_EXTRA_COLORS as $field => $def) {
+        if (isset($s[$field]) && $s[$field] !== '') $c[] = $def[0];
+    }
     if (isset($s['card_bg']) && $s['card_bg'] !== '')$c[] = 'sx-cb';
     if (isset($s['card_text']) && $s['card_text'] !== '')$c[] = 'sx-ct';
     if (isset($s['card_border_color']) && $s['card_border_color'] !== '')$c[] = 'sx-cborder';
@@ -161,7 +181,6 @@ function sectionStyleClasses(array $s): string {
     if (isset($s['hide_overlay']) && $s['hide_overlay'] === '1')$c[] = 'sx-no-overlay';
     return implode(' ', $c);
 }
-
 function sectionStyleBgValue(array $s): string {$layers = [];
     if (!empty($s['bg_image']) && sxValidImagePath($s['bg_image'])) {
         $path =$s['bg_image'];
@@ -169,19 +188,17 @@ function sectionStyleBgValue(array $s): string {$layers = [];
         $alpha = (isset($s['bg_overlay']) && $s['bg_overlay'] === '' ? 0 : (int)($s['bg_overlay'] ?? 0)) / 100;
         if ($alpha > 0) {$a = number_format($alpha, 2, '.', '');$layers[] = "linear-gradient(rgba(0,0,0,{$a}),rgba(0,0,0,{$a}))";
         }
-        // Caminho a partir da raiz do site: URL relativa em variável CSS seria resolvida contra o arquivo .css.
         $base = defined('SITE_URL') ? str_replace(["'", '"', '(', ')', ' ', '\\'], '', (string)SITE_URL) : '';
         $layers[] = "url('{$base}/{$path}')";
     }
     if (isset($s['bg_mode']) && $s['bg_mode'] === 'solid' && !empty($s['bg_color'])) {
-        $layers[] =$s['bg_color']; // cor sólida precisa ser a última camada
+        $layers[] =$s['bg_color'];
     } elseif (isset($s['bg_mode']) && $s['bg_mode'] === 'gradient' && !empty($s['bg_color'])) {
         $dir = ['down' => 'to bottom', 'right' => 'to right', 'diag' => 'to bottom right', 'up' => 'to top'][$s['bg_direction'] ?? 'down'] ?? 'to bottom';
         $layers[] = 'linear-gradient(' .$dir . ',' . $s['bg_color'] . ',' . (!empty($s['bg_color2']) ? $s['bg_color2'] :$s['bg_color']) . ')';
     }
     return implode(',', $layers);
 }
-
 function sectionStyleInline(array $s): string {$v = [];
     $bg = sectionStyleBgValue($s);
     if ($bg !== '') $v[] = '--sx-bg:' .$bg;
@@ -195,6 +212,9 @@ function sectionStyleInline(array $s): string {$v = [];
     foreach (['map_box_bg' => '--sx-map-box-bg', 'map_box_border' => '--sx-map-box-border', 'map_marker_color' => '--sx-map-marker', 'map_marker_border' => '--sx-map-marker-border', 'map_info_bg' => '--sx-map-info-bg', 'map_info_text' => '--sx-map-info-text', 'map_info_border' => '--sx-map-info-border', 'map_info_icon_bg' => '--sx-map-info-icon-bg', 'map_info_code_color' => '--sx-map-info-code'] as $field => $var) {
         if (!empty($s[$field])) $v[] = $var . ':' . $s[$field];
     }
+    foreach (SX_EXTRA_COLORS as $field => $def) {
+        if (!empty($s[$field])) $v[] = $def[1] . ':' . $s[$field];
+    }
     if (!empty($s['card_bg']))      $v[] = '--sx-card-bg:' .$s['card_bg'];
     if (!empty($s['card_text']))    $v[] = '--sx-card-text:' .$s['card_text'];
     if (!empty($s['card_border_color'])) $v[] = '--sx-card-border:' .$s['card_border_color'];
@@ -203,14 +223,12 @@ function sectionStyleInline(array $s): string {$v = [];
     if (!empty($s['title_weight'])) $v[] = '--sx-title-weight:' .$s['title_weight'];
     return implode(';', $v);
 }
-
 function sectionStyleAttrs(array $s): string {$out = '';
     $inline = sectionStyleInline($s);
     if ($inline !== '') $out .= ' style="' . htmlspecialchars($inline, ENT_QUOTES, 'UTF-8') . '"';
     if (!empty($s['animation'])) $out .= ' data-sx-anim="' . htmlspecialchars($s['animation'], ENT_QUOTES, 'UTF-8') . '"';
     return $out;
 }
-
 function sectionStyleFontsUrl(array $styles): string {$families = [];
     foreach ($styles as$s) {
         foreach (SX_FONT_FIELDS as $field) {$key = $s[$field] ?? '';

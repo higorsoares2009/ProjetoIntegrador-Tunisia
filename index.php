@@ -68,6 +68,7 @@ if ($pdo) {
         error_log("Erro ao carregar dados do site: " . $e->getMessage());
     }
 }
+
 $itemsBySection = [];
 if ($pdo && $sections) {
     $itemsByDbId = [];
@@ -92,10 +93,21 @@ if ($pdo && $sections) {
         catch (Throwable $e) { error_log('Erro ao migrar itens da seção ' . $identifier . ': ' . $e->getMessage()); $itemsBySection[$identifier] = []; }
     }
 }
+if (defined('SX_SECTION_PREVIEW') && isset($sxPreviewPayload) && is_array($sxPreviewPayload)) {
+    $pvId = (string)($sxPreviewPayload['identifier'] ?? '');
+    if ($pvId !== '') {
+        $sections[$pvId] = array_merge(
+            $sections[$pvId] ?? ['id' => 0, 'display_order' => 999],
+            (array)($sxPreviewPayload['row'] ?? []),
+            ['identifier' => $pvId, 'style_data' => json_encode((array)($sxPreviewPayload['style'] ?? []), JSON_UNESCAPED_UNICODE)]
+        );
+        $itemsBySection[$pvId] = (array)($sxPreviewPayload['items'] ?? []);
+        if (!isset($orderedSections) || !in_array($pvId, $orderedSections, true)) $orderedSections[] = $pvId;
+    }
+}
 $siteCacheable = ($pdo !== null && !empty($sections));
 $siteFromDb = ($pdo !== null && !empty($sections));
 $showSection = fn(string $id): bool => !$siteFromDb || isset($sections[$id]);
-
 $sectionStyles = [];
 foreach ($sections as $sxId => $sxRow) {
     $sectionStyles[$sxId] = decodeSectionStyle($sxRow['style_data'] ?? null);
@@ -108,7 +120,6 @@ $sxAttrs = fn(string $id): string => sectionStyleAttrs($sectionStyles[$id] ?? se
 $sxFontsUrl = sectionStyleFontsUrl($sectionStyles);
 $heroStyle = $sectionStyles['hero'] ?? sectionStyleDefaults();
 $hideHeroVideo = $heroStyle['hide_video'] === '1' || $heroStyle['bg_image'] !== '' || $heroStyle['bg_mode'] !== '';
-
 $hero = $sections['hero'] ?? [
     'title' => 'Tunísia: Cultura,<br />Inovação e<br /><span>Conhecimento</span>',
     'badge' => 'Projeto Integrador 2026',
@@ -335,7 +346,7 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
 
         <div class="mapa-container">
           <div class="mapa-box">
-            <?= pictureTag($mapa['image_path'] ?? 'uploads/media/mapa.png', 'Mapa da Tunísia') ?>
+            <?= pictureTag($mapa['image_path'] ?? 'assets/img/mapa.png', 'Mapa da Tunísia') ?>
 
             <?php foreach (($itemsBySection['mapa'] ?? []) as $marker): if (($marker['item_type'] ?? '') !== 'map_marker') continue; $coords = explode(',', (string)($marker['link_url'] ?? '40%,50%')); $top = trim($coords[0] ?? '40%'); $left = trim($coords[1] ?? '50%'); ?>
               <button class="marker" style="top: <?= e($top) ?>; left: <?= e($left) ?>" data-city="<?= e($marker['title'] ?? '') ?>" data-regiao="<?= e($marker['subtitle'] ?? '') ?>" data-atracao="<?= e($marker['description'] ?? '') ?>" data-curiosidade="<?= e($marker['badge'] ?? '') ?>" aria-label="Ver <?= e($marker['title'] ?? 'local') ?>"></button>
@@ -421,6 +432,7 @@ $structuredData['@graph'][1] = array_filter($structuredData['@graph'][1], fn($v)
         <div class="business-grid">
           <?php foreach (($itemsBySection['empreendedorismo'] ?? []) as $item): if (($item['item_type'] ?? '') !== 'business') continue; ?>
             <div class="business-card"><div class="business-image"><?php
+              // Usa a imagem do próprio item; se estiver vazia, cai na "Imagem da seção" definida no admin.
               $bizImg = trim((string)($item['image_path'] ?? '')) !== '' ? $item['image_path'] : ($emp['image_path'] ?? '');
               if ($bizImg !== ''): ?><?= pictureTag((string)$bizImg, (string)($item['title'] ?? '')) ?><?php endif; ?></div><div class="business-content"><h3><?= e($item['title'] ?? '') ?></h3><p><?= e($item['description'] ?? '') ?></p></div></div>
           <?php endforeach; ?>
